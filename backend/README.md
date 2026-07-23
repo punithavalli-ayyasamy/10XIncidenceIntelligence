@@ -43,7 +43,16 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Optional: set `GEMINI_API_KEY` when implementing the Gemini client.
+### Gemini API key (secure)
+
+Do **not** put the key in source code.
+
+```bash
+cp .env.example .env
+# edit .env and set GEMINI_API_KEY=...
+```
+
+`backend/.env` is gitignored. Settings are loaded via `app/core/config.py` (`pydantic-settings`). You can also export the var in your shell / CI secrets instead of using a file.
 
 ## Run
 

@@ -1,12 +1,174 @@
 {
-  "description": "Placeholder service topology. TODO: add real nodes and edges for blast-radius demo.",
+  "platform": "e-commerce",
+  "scenario": "black_friday_prep",
+  "description": "Microservice dependency topology for blast-radius analysis. Edges follow request/data flow; depends_on lists direct downstream dependencies for each node.",
+  "criticality_levels": ["low", "medium", "high", "critical"],
   "nodes": [
-    {"id": "payments", "type": "service"},
-    {"id": "checkout", "type": "service"},
-    {"id": "ledger", "type": "service"}
+    {
+      "id": "frontend",
+      "name": "Frontend",
+      "type": "frontend",
+      "depends_on": ["api-gateway"],
+      "criticality": "high",
+      "owner": "web-experience",
+      "SLA": {
+        "availability": 0.999,
+        "latency_p99_ms": 1500
+      }
+    },
+    {
+      "id": "api-gateway",
+      "name": "API Gateway",
+      "type": "gateway",
+      "depends_on": ["checkout", "redis"],
+      "criticality": "critical",
+      "owner": "platform-edge",
+      "SLA": {
+        "availability": 0.9995,
+        "latency_p99_ms": 50
+      }
+    },
+    {
+      "id": "checkout",
+      "name": "Checkout",
+      "type": "service",
+      "depends_on": ["payment", "inventory", "fraud-detection", "redis"],
+      "criticality": "critical",
+      "owner": "checkout-team",
+      "SLA": {
+        "availability": 0.999,
+        "latency_p99_ms": 400
+      }
+    },
+    {
+      "id": "payment",
+      "name": "Payment",
+      "type": "service",
+      "depends_on": ["order", "fraud-detection", "postgres", "redis", "kafka"],
+      "criticality": "critical",
+      "owner": "payments-team",
+      "SLA": {
+        "availability": 0.9995,
+        "latency_p99_ms": 250
+      }
+    },
+    {
+      "id": "order",
+      "name": "Order",
+      "type": "service",
+      "depends_on": ["inventory", "notification", "postgres", "kafka"],
+      "criticality": "critical",
+      "owner": "orders-team",
+      "SLA": {
+        "availability": 0.999,
+        "latency_p99_ms": 300
+      }
+    },
+    {
+      "id": "inventory",
+      "name": "Inventory",
+      "type": "service",
+      "depends_on": ["postgres", "redis", "kafka"],
+      "criticality": "high",
+      "owner": "inventory-team",
+      "SLA": {
+        "availability": 0.999,
+        "latency_p99_ms": 200
+      }
+    },
+    {
+      "id": "notification",
+      "name": "Notification",
+      "type": "service",
+      "depends_on": ["kafka", "redis"],
+      "criticality": "medium",
+      "owner": "comms-team",
+      "SLA": {
+        "availability": 0.995,
+        "latency_p99_ms": 1000
+      }
+    },
+    {
+      "id": "fraud-detection",
+      "name": "Fraud Detection",
+      "type": "service",
+      "depends_on": ["redis", "postgres", "kafka"],
+      "criticality": "high",
+      "owner": "risk-team",
+      "SLA": {
+        "availability": 0.999,
+        "latency_p99_ms": 150
+      }
+    },
+    {
+      "id": "redis",
+      "name": "Redis",
+      "type": "cache",
+      "depends_on": [],
+      "criticality": "high",
+      "owner": "platform-data",
+      "SLA": {
+        "availability": 0.9995,
+        "latency_p99_ms": 5
+      }
+    },
+    {
+      "id": "postgres",
+      "name": "Postgres",
+      "type": "database",
+      "depends_on": [],
+      "criticality": "critical",
+      "owner": "platform-data",
+      "SLA": {
+        "availability": 0.9999,
+        "latency_p99_ms": 20
+      }
+    },
+    {
+      "id": "kafka",
+      "name": "Kafka",
+      "type": "messaging",
+      "depends_on": [],
+      "criticality": "high",
+      "owner": "platform-streaming",
+      "SLA": {
+        "availability": 0.999,
+        "latency_p99_ms": 100
+      }
+    }
   ],
   "edges": [
-    {"from": "checkout", "to": "payments"},
-    {"from": "payments", "to": "ledger"}
-  ]
+    {"from": "frontend", "to": "api-gateway", "relation": "http"},
+    {"from": "api-gateway", "to": "checkout", "relation": "http"},
+    {"from": "api-gateway", "to": "redis", "relation": "cache"},
+    {"from": "checkout", "to": "payment", "relation": "http"},
+    {"from": "checkout", "to": "inventory", "relation": "http"},
+    {"from": "checkout", "to": "fraud-detection", "relation": "http"},
+    {"from": "checkout", "to": "redis", "relation": "cache"},
+    {"from": "payment", "to": "order", "relation": "http"},
+    {"from": "payment", "to": "fraud-detection", "relation": "http"},
+    {"from": "payment", "to": "postgres", "relation": "jdbc"},
+    {"from": "payment", "to": "redis", "relation": "cache"},
+    {"from": "payment", "to": "kafka", "relation": "produce"},
+    {"from": "order", "to": "inventory", "relation": "http"},
+    {"from": "order", "to": "notification", "relation": "http"},
+    {"from": "order", "to": "postgres", "relation": "jdbc"},
+    {"from": "order", "to": "kafka", "relation": "produce"},
+    {"from": "inventory", "to": "postgres", "relation": "jdbc"},
+    {"from": "inventory", "to": "redis", "relation": "cache"},
+    {"from": "inventory", "to": "kafka", "relation": "produce"},
+    {"from": "notification", "to": "kafka", "relation": "consume"},
+    {"from": "notification", "to": "redis", "relation": "cache"},
+    {"from": "fraud-detection", "to": "redis", "relation": "cache"},
+    {"from": "fraud-detection", "to": "postgres", "relation": "jdbc"},
+    {"from": "fraud-detection", "to": "kafka", "relation": "produce"}
+  ],
+  "blast_radius_hints": {
+    "payment": {
+      "upstream_affected": ["checkout", "api-gateway", "frontend"],
+      "downstream_affected": ["order", "notification"],
+      "shared_dependencies": ["postgres", "redis", "kafka", "fraud-detection"],
+      "notes": "Payment degradation blocks checkout completion and stalls order creation; Postgres pool exhaustion may also impact order, inventory, and fraud-detection."
+    }
+  }
 }

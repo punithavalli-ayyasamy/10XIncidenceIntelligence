@@ -3,6 +3,10 @@
 from fastapi import FastAPI
 
 from app.api.investigate import router as investigate_router
+from app.core.config import get_settings
+
+# Load settings early so .env / GEMINI_API_KEY are available app-wide.
+settings = get_settings()
 
 app = FastAPI(
     title="10X Incident Intelligence",

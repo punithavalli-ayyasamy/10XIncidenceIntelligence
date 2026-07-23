@@ -1,5 +1,2451 @@
 {
-  "service": "payments",
-  "description": "Placeholder payment service logs. TODO: populate error / warning entries for demo.",
-  "logs": []
+  "service": "payment-service",
+  "platform": "e-commerce",
+  "scenario": "black_friday_prep",
+  "description": "Chronological production logs for payment-service covering one hour of Black Friday ramp. Story progresses from healthy INFO traffic to WARN signals (slow SQL, pool pressure), then ERROR storms (timeouts, retry exhaustion, circuit breaker OPEN, Kafka publish failures, and full Postgres connection pool exhaustion).",
+  "correlated_metrics_file": "payment_metrics.json",
+  "window": {
+    "start": "2025-11-28T13:01:00Z",
+    "end": "2025-11-28T14:00:00Z",
+    "entries": 150
+  },
+  "story_arc": [
+    "13:01-13:12 healthy baseline (mostly INFO)",
+    "13:13-13:24 traffic ramp; elevated pool usage and slow queries",
+    "13:25-13:39 sustained surge; retries, timeouts, early circuit-breaker warnings",
+    "13:40-13:52 pool pressure; retry exhaustion, Kafka failures, thread saturation",
+    "13:53-14:00 degradation; DB pool exhausted, SLO breach, widespread payment failures"
+  ],
+  "logs": [
+    {
+      "timestamp": "2025-11-28T13:01:08.703Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "OrderClient",
+      "thread": "http-nio-8080-exec-10",
+      "trace_id": "bf-483452-1950",
+      "request_id": "req_82626625940",
+      "message": "Forwarded payment result to order-service",
+      "context": {
+        "order_id": "ord_95319"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:01:32.156Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "OrderClient",
+      "thread": "http-nio-8080-exec-31",
+      "trace_id": "bf-677814-7955",
+      "request_id": "req_25313507023",
+      "message": "Forwarded payment result to order-service",
+      "context": {
+        "order_id": "ord_64810"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:02:18.457Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-51",
+      "trace_id": "bf-331821-1763",
+      "request_id": "req_49226687149",
+      "message": "Payment authorization accepted",
+      "context": {
+        "amount_cents": 39120,
+        "currency": "USD",
+        "psp": "stripe"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:02:30.818Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-24",
+      "trace_id": "bf-709851-4078",
+      "request_id": "req_24484337155",
+      "message": "Payment capture completed",
+      "context": {
+        "amount_cents": 38714,
+        "currency": "USD"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:03:00.124Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-64",
+      "trace_id": "ord-914983-6146",
+      "request_id": "req_89309156112",
+      "message": "Payment authorization accepted",
+      "context": {
+        "amount_cents": 41866,
+        "currency": "USD",
+        "psp": "stripe"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:03:14.000Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "TrafficGuard",
+      "thread": "http-nio-8080-exec-2",
+      "trace_id": "bf-652160-3281",
+      "request_id": "req_39513911161",
+      "message": "Black Friday traffic multiplier watch enabled",
+      "context": {
+        "expected_peak_multiplier": 5.0,
+        "current_multiplier": 1.03
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:03:36.748Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "KafkaProducer",
+      "thread": "http-nio-8080-exec-32",
+      "trace_id": "bf-702326-5919",
+      "request_id": "req_76680211233",
+      "message": "Published payment.authorized event",
+      "context": {
+        "topic": "payment.events",
+        "partition": 3
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:04:02.249Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "HealthCheck",
+      "thread": "http-nio-8080-exec-10",
+      "trace_id": "bf-636800-7850",
+      "request_id": "req_28648987694",
+      "message": "Readiness probe OK",
+      "context": {
+        "db": "up",
+        "redis": "up",
+        "kafka": "up"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:04:29.869Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-41",
+      "trace_id": "pay-829070-6737",
+      "request_id": "req_76977308621",
+      "message": "Payment authorization accepted",
+      "context": {
+        "amount_cents": 45091,
+        "currency": "USD",
+        "psp": "stripe"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:04:46.976Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-61",
+      "trace_id": "bf-163616-6072",
+      "request_id": "req_90088808577",
+      "message": "Payment capture completed",
+      "context": {
+        "amount_cents": 7432,
+        "currency": "USD"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:05:24.658Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "HealthCheck",
+      "thread": "http-nio-8080-exec-50",
+      "trace_id": "pay-123658-8564",
+      "request_id": "req_33001543209",
+      "message": "Readiness probe OK",
+      "context": {
+        "db": "up",
+        "redis": "up",
+        "kafka": "up"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:05:40.633Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-17",
+      "trace_id": "chk-517225-7405",
+      "request_id": "req_20722414652",
+      "message": "Payment authorization accepted",
+      "context": {
+        "amount_cents": 15599,
+        "currency": "USD",
+        "psp": "stripe"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:05:55.203Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "KafkaProducer",
+      "thread": "http-nio-8080-exec-36",
+      "trace_id": "ord-476198-7233",
+      "request_id": "req_44178195293",
+      "message": "Published payment.authorized event",
+      "context": {
+        "topic": "payment.events",
+        "partition": 2
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:06:20.964Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-30",
+      "trace_id": "bf-608520-3987",
+      "request_id": "req_49783193797",
+      "message": "HikariCP pool healthy",
+      "context": {
+        "active": 25,
+        "idle": 75,
+        "max": 100
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:06:24.048Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "JdbcTemplate",
+      "thread": "http-nio-8080-exec-26",
+      "trace_id": "ord-287193-8109",
+      "request_id": "req_99288656799",
+      "message": "Slow SQL query detected",
+      "context": {
+        "sql": "SELECT * FROM payment_intents WHERE idempotency_key = ?",
+        "duration_ms": 310,
+        "threshold_ms": 250
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:06:43.737Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "CheckoutClient",
+      "thread": "http-nio-8080-exec-41",
+      "trace_id": "chk-824035-9445",
+      "request_id": "req_95685559418",
+      "message": "Received checkout session from checkout-service",
+      "context": {
+        "checkout_id": "chk_89929"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:07:20.734Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "JdbcTemplate",
+      "thread": "http-nio-8080-exec-52",
+      "trace_id": "bf-860006-3602",
+      "request_id": "req_10545625652",
+      "message": "Slow SQL query detected",
+      "context": {
+        "sql": "SELECT * FROM payment_intents WHERE idempotency_key = ?",
+        "duration_ms": 381,
+        "threshold_ms": 250
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:07:27.648Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-51",
+      "trace_id": "ord-518359-7457",
+      "request_id": "req_74869197868",
+      "message": "Payment authorization accepted",
+      "context": {
+        "amount_cents": 31225,
+        "currency": "USD",
+        "psp": "stripe"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:07:52.808Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "RedisCache",
+      "thread": "http-nio-8080-exec-57",
+      "trace_id": "chk-215268-6571",
+      "request_id": "req_16875071241",
+      "message": "Cache hit for payment method token",
+      "context": {
+        "cache_key": "pm_2103"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:08:05.682Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-47",
+      "trace_id": "bf-173731-4407",
+      "request_id": "req_64177013788",
+      "message": "HikariCP pool healthy",
+      "context": {
+        "active": 30,
+        "idle": 70,
+        "max": 100
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:08:32.979Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "CheckoutClient",
+      "thread": "http-nio-8080-exec-61",
+      "trace_id": "bf-220956-8996",
+      "request_id": "req_76425918935",
+      "message": "Received checkout session from checkout-service",
+      "context": {
+        "checkout_id": "chk_88941"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:08:46.346Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "JdbcTemplate",
+      "thread": "http-nio-8080-exec-61",
+      "trace_id": "pay-263486-9989",
+      "request_id": "req_29534737759",
+      "message": "Slow SQL query detected",
+      "context": {
+        "sql": "SELECT * FROM payment_intents WHERE idempotency_key = ?",
+        "duration_ms": 317,
+        "threshold_ms": 250
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:09:08.060Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-44",
+      "trace_id": "pay-601871-3645",
+      "request_id": "req_12217639874",
+      "message": "HikariCP pool healthy",
+      "context": {
+        "active": 23,
+        "idle": 77,
+        "max": 100
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:09:27.557Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "CheckoutClient",
+      "thread": "http-nio-8080-exec-4",
+      "trace_id": "pay-774147-2491",
+      "request_id": "req_79840957960",
+      "message": "Received checkout session from checkout-service",
+      "context": {
+        "checkout_id": "chk_29215"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:09:57.851Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "CheckoutClient",
+      "thread": "http-nio-8080-exec-43",
+      "trace_id": "chk-743016-4197",
+      "request_id": "req_43526852242",
+      "message": "Received checkout session from checkout-service",
+      "context": {
+        "checkout_id": "chk_39201"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:10:36.760Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "RedisCache",
+      "thread": "http-nio-8080-exec-64",
+      "trace_id": "pay-866513-1474",
+      "request_id": "req_14250315046",
+      "message": "Cache hit for payment method token",
+      "context": {
+        "cache_key": "pm_4275"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:11:02.142Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "KafkaProducer",
+      "thread": "http-nio-8080-exec-45",
+      "trace_id": "ord-947842-6726",
+      "request_id": "req_20156033797",
+      "message": "Published payment.authorized event",
+      "context": {
+        "topic": "payment.events",
+        "partition": 3
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:11:13.252Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "HealthCheck",
+      "thread": "http-nio-8080-exec-44",
+      "trace_id": "chk-606098-1031",
+      "request_id": "req_60049159609",
+      "message": "Readiness probe OK",
+      "context": {
+        "db": "up",
+        "redis": "up",
+        "kafka": "up"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:13:33.594Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-34",
+      "trace_id": "pay-141511-3974",
+      "request_id": "req_62650324820",
+      "message": "Connection pool utilization elevated",
+      "context": {
+        "active": 47,
+        "idle": 53,
+        "max": 100,
+        "waiters": 0
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:13:54.291Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-38",
+      "trace_id": "chk-900776-6341",
+      "request_id": "req_84128407345",
+      "message": "Payment authorization accepted",
+      "context": {
+        "amount_cents": 17803,
+        "currency": "USD",
+        "psp": "stripe"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:14:00.000Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "AutoscalerHint",
+      "thread": "http-nio-8080-exec-1",
+      "trace_id": "pay-500164-2374",
+      "request_id": "req_46398317234",
+      "message": "Observed sustained RPS increase; recommending horizontal scale-out",
+      "context": {
+        "current_rps": 2165,
+        "baseline_rps": 1200
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:14:15.758Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "TomcatExecutor",
+      "thread": "http-nio-8080-exec-36",
+      "trace_id": "bf-938428-4003",
+      "request_id": "req_44670754554",
+      "message": "HTTP thread pool usage rising",
+      "context": {
+        "usage_pct": 57.8,
+        "max_threads": 200
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:14:33.014Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-54",
+      "trace_id": "chk-657658-3487",
+      "request_id": "req_80967920409",
+      "message": "Payment authorization accepted",
+      "context": {
+        "amount_cents": 24484,
+        "currency": "USD",
+        "psp": "stripe"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:15:12.583Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-20",
+      "trace_id": "chk-248435-8757",
+      "request_id": "req_83531285853",
+      "message": "HikariCP pool healthy",
+      "context": {
+        "active": 31,
+        "idle": 69,
+        "max": 100
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:16:12.977Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-29",
+      "trace_id": "bf-377296-2993",
+      "request_id": "req_11948942435",
+      "message": "Connection pool utilization elevated",
+      "context": {
+        "active": 48,
+        "idle": 52,
+        "max": 100,
+        "waiters": 0
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:16:21.103Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "HealthCheck",
+      "thread": "http-nio-8080-exec-8",
+      "trace_id": "chk-300599-5537",
+      "request_id": "req_79139289489",
+      "message": "Readiness probe OK",
+      "context": {
+        "db": "up",
+        "redis": "up",
+        "kafka": "up"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:16:22.411Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-12",
+      "trace_id": "pay-551203-8841",
+      "request_id": "req_55120388410",
+      "message": "Payment capture completed",
+      "context": {
+        "amount_cents": 8999,
+        "currency": "USD"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:16:39.128Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "TomcatExecutor",
+      "thread": "http-nio-8080-exec-17",
+      "trace_id": "bf-652510-4906",
+      "request_id": "req_26914122033",
+      "message": "HTTP thread pool usage rising",
+      "context": {
+        "usage_pct": 61.0,
+        "max_threads": 200
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:17:51.443Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-26",
+      "trace_id": "pay-574318-9325",
+      "request_id": "req_80772627075",
+      "message": "Payment capture completed",
+      "context": {
+        "amount_cents": 30347,
+        "currency": "USD"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:18:25.525Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-40",
+      "trace_id": "chk-404045-8302",
+      "request_id": "req_45123812544",
+      "message": "Connection pool utilization elevated",
+      "context": {
+        "active": 45,
+        "idle": 55,
+        "max": 100,
+        "waiters": 1
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:18:50.003Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-3",
+      "trace_id": "chk-639214-8778",
+      "request_id": "req_24804990876",
+      "message": "Request latency approaching SLO",
+      "context": {
+        "endpoint": "/v1/payments/authorize",
+        "latency_ms": 264,
+        "slo_ms": 250
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:19:29.613Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "KafkaProducer",
+      "thread": "http-nio-8080-exec-58",
+      "trace_id": "chk-536875-2992",
+      "request_id": "req_71814734308",
+      "message": "Published payment.authorized event",
+      "context": {
+        "topic": "payment.events",
+        "partition": 8
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:19:54.096Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "RedisCache",
+      "thread": "http-nio-8080-exec-28",
+      "trace_id": "pay-922016-3004",
+      "request_id": "req_98975057390",
+      "message": "Cache hit for payment method token",
+      "context": {
+        "cache_key": "pm_8017"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:20:16.482Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "TomcatExecutor",
+      "thread": "http-nio-8080-exec-51",
+      "trace_id": "pay-821149-4525",
+      "request_id": "req_44284321057",
+      "message": "HTTP thread pool usage rising",
+      "context": {
+        "usage_pct": 57.2,
+        "max_threads": 200
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:21:01.465Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "JdbcTemplate",
+      "thread": "http-nio-8080-exec-17",
+      "trace_id": "bf-174158-5187",
+      "request_id": "req_33324853749",
+      "message": "Slow SQL query detected",
+      "context": {
+        "sql": "SELECT balance FROM ledger_accounts WHERE account_id=? FOR UPDATE",
+        "duration_ms": 627,
+        "threshold_ms": 250
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:21:21.544Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "KafkaProducer",
+      "thread": "http-nio-8080-exec-29",
+      "trace_id": "bf-517602-8983",
+      "request_id": "req_32435672939",
+      "message": "Published payment.authorized event",
+      "context": {
+        "topic": "payment.events",
+        "partition": 2
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:21:33.000Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PspClient",
+      "thread": "http-nio-8080-exec-26",
+      "trace_id": "chk-629253-1081",
+      "request_id": "req_44749943444",
+      "message": "Payment provider timeout; will retry",
+      "context": {
+        "psp": "stripe",
+        "operation": "authorize",
+        "timeout_ms": 2000,
+        "attempt": 1,
+        "max_attempts": 3
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:21:47.943Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "TomcatExecutor",
+      "thread": "http-nio-8080-exec-37",
+      "trace_id": "chk-826333-5801",
+      "request_id": "req_70323835706",
+      "message": "HTTP thread pool usage rising",
+      "context": {
+        "usage_pct": 60.2,
+        "max_threads": 200
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:22:30.395Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "OrderClient",
+      "thread": "http-nio-8080-exec-26",
+      "trace_id": "pay-433998-2510",
+      "request_id": "req_60346254465",
+      "message": "Forwarded payment result to order-service",
+      "context": {
+        "order_id": "ord_54448"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:22:50.933Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "HealthCheck",
+      "thread": "http-nio-8080-exec-3",
+      "trace_id": "ord-447600-9477",
+      "request_id": "req_51334452048",
+      "message": "Readiness probe OK",
+      "context": {
+        "db": "up",
+        "redis": "up",
+        "kafka": "up"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:23:01.498Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "TomcatExecutor",
+      "thread": "http-nio-8080-exec-43",
+      "trace_id": "pay-356320-1564",
+      "request_id": "req_37099301982",
+      "message": "HTTP thread pool usage rising",
+      "context": {
+        "usage_pct": 48.1,
+        "max_threads": 200
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:25:33.164Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "RetryTemplate",
+      "thread": "http-nio-8080-exec-26",
+      "trace_id": "bf-728836-3415",
+      "request_id": "req_45784692314",
+      "message": "Transient failure; retrying payment operation",
+      "context": {
+        "operation": "refund_check",
+        "attempt": 3,
+        "max_attempts": 3,
+        "cause": "SocketTimeoutException"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:26:05.334Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-62",
+      "trace_id": "bf-609396-5403",
+      "request_id": "req_50757583127",
+      "message": "HikariCP pool nearing capacity",
+      "context": {
+        "active": 80,
+        "idle": 20,
+        "max": 100,
+        "pending_threads": 6,
+        "acquisition_timeout_ms": 30000
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:26:45.195Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "OrderClient",
+      "thread": "http-nio-8080-exec-51",
+      "trace_id": "bf-414201-5984",
+      "request_id": "req_42769182621",
+      "message": "Forwarded payment result to order-service",
+      "context": {
+        "order_id": "ord_86913"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:26:46.291Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "RetryTemplate",
+      "thread": "http-nio-8080-exec-40",
+      "trace_id": "bf-595918-1286",
+      "request_id": "req_71373316921",
+      "message": "Transient failure; retrying payment operation",
+      "context": {
+        "operation": "capture",
+        "attempt": 2,
+        "max_attempts": 3,
+        "cause": "QueryTimeoutException"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:27:00.901Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "RedisCache",
+      "thread": "http-nio-8080-exec-50",
+      "trace_id": "chk-320944-2222",
+      "request_id": "req_21087339407",
+      "message": "Redis GET latency elevated; falling back to DB",
+      "context": {
+        "latency_ms": 195,
+        "key_prefix": "pm_token"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:27:19.974Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-50",
+      "trace_id": "pay-855684-9096",
+      "request_id": "req_49296645016",
+      "message": "HikariCP pool healthy",
+      "context": {
+        "active": 32,
+        "idle": 68,
+        "max": 100
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:27:42.604Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-36",
+      "trace_id": "bf-837502-6983",
+      "request_id": "req_75418294463",
+      "message": "HikariCP pool nearing capacity",
+      "context": {
+        "active": 73,
+        "idle": 27,
+        "max": 100,
+        "pending_threads": 6,
+        "acquisition_timeout_ms": 30000
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:28:47.102Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-33",
+      "trace_id": "pay-662911-1204",
+      "request_id": "req_66291112041",
+      "message": "HikariCP pool nearing capacity",
+      "context": {
+        "active": 71,
+        "idle": 29,
+        "max": 100,
+        "pending_threads": 9,
+        "acquisition_timeout_ms": 30000
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:28:51.276Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "RetryTemplate",
+      "thread": "http-nio-8080-exec-58",
+      "trace_id": "ord-416618-3305",
+      "request_id": "req_59032124875",
+      "message": "Transient failure; retrying payment operation",
+      "context": {
+        "operation": "authorize",
+        "attempt": 2,
+        "max_attempts": 3,
+        "cause": "PessimisticLockingFailureException"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:29:09.622Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-51",
+      "trace_id": "bf-305249-1192",
+      "request_id": "req_45604561453",
+      "message": "Payment authorization accepted under elevated load",
+      "context": {
+        "amount_cents": 2227,
+        "latency_ms": 383
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:29:48.880Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "RetryTemplate",
+      "thread": "http-nio-8080-exec-36",
+      "trace_id": "bf-394269-2666",
+      "request_id": "req_51497880315",
+      "message": "Transient failure; retrying payment operation",
+      "context": {
+        "operation": "refund_check",
+        "attempt": 2,
+        "max_attempts": 3,
+        "cause": "PessimisticLockingFailureException"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:30:38.041Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-41",
+      "trace_id": "chk-910741-7116",
+      "request_id": "req_99170630819",
+      "message": "HikariCP pool nearing capacity",
+      "context": {
+        "active": 70,
+        "idle": 30,
+        "max": 100,
+        "pending_threads": 15,
+        "acquisition_timeout_ms": 30000
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:30:50.906Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-55",
+      "trace_id": "chk-649199-9263",
+      "request_id": "req_90257785001",
+      "message": "HikariCP pool healthy",
+      "context": {
+        "active": 22,
+        "idle": 78,
+        "max": 100
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:31:08.723Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "RedisCache",
+      "thread": "http-nio-8080-exec-11",
+      "trace_id": "bf-867927-7731",
+      "request_id": "req_93540809376",
+      "message": "Redis GET latency elevated; falling back to DB",
+      "context": {
+        "latency_ms": 220,
+        "key_prefix": "pm_token"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:32:01.415Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-17",
+      "trace_id": "chk-595120-7797",
+      "request_id": "req_50130726373",
+      "message": "Payment authorization accepted under elevated load",
+      "context": {
+        "amount_cents": 65644,
+        "latency_ms": 312
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:32:22.842Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "KafkaProducer",
+      "thread": "http-nio-8080-exec-31",
+      "trace_id": "pay-606653-7461",
+      "request_id": "req_31989126696",
+      "message": "Kafka publish delayed; broker ack lag",
+      "context": {
+        "topic": "payment.events",
+        "lag_ms": 1736,
+        "retries": 2
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:33:09.038Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "RedisCache",
+      "thread": "http-nio-8080-exec-6",
+      "trace_id": "chk-768068-6909",
+      "request_id": "req_27005992057",
+      "message": "Cache hit for payment method token",
+      "context": {
+        "cache_key": "pm_2394"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:33:14.810Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-43",
+      "trace_id": "ord-548185-3287",
+      "request_id": "req_38122523737",
+      "message": "HikariCP pool nearing capacity",
+      "context": {
+        "active": 77,
+        "idle": 23,
+        "max": 100,
+        "pending_threads": 9,
+        "acquisition_timeout_ms": 30000
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:33:38.424Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-48",
+      "trace_id": "pay-948673-4311",
+      "request_id": "req_13810716013",
+      "message": "HikariCP pool nearing capacity",
+      "context": {
+        "active": 64,
+        "idle": 36,
+        "max": 100,
+        "pending_threads": 12,
+        "acquisition_timeout_ms": 30000
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:34:23.170Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-32",
+      "trace_id": "ord-376606-1054",
+      "request_id": "req_82724553713",
+      "message": "Payment authorization accepted",
+      "context": {
+        "amount_cents": 42440,
+        "currency": "USD",
+        "psp": "stripe"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:34:37.582Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "RetryTemplate",
+      "thread": "http-nio-8080-exec-44",
+      "trace_id": "bf-622343-5546",
+      "request_id": "req_28726681197",
+      "message": "Transient failure; retrying payment operation",
+      "context": {
+        "operation": "refund_check",
+        "attempt": 2,
+        "max_attempts": 3,
+        "cause": "PessimisticLockingFailureException"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:35:00.000Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "CircuitBreaker",
+      "thread": "http-nio-8080-exec-44",
+      "trace_id": "ord-479919-7493",
+      "request_id": "req_10850745597",
+      "message": "Circuit breaker payment-psp transitioning toward OPEN",
+      "context": {
+        "name": "payment-psp",
+        "failure_rate": 0.143,
+        "threshold": 0.25,
+        "state": "HALF_OPEN"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:35:14.370Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PspClient",
+      "thread": "http-nio-8080-exec-32",
+      "trace_id": "ord-519175-8304",
+      "request_id": "req_14157701821",
+      "message": "Upstream timeout calling payment provider",
+      "context": {
+        "psp": "stripe",
+        "operation": "authorize",
+        "elapsed_ms": 2379,
+        "http_status": 504
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:35:31.501Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "KafkaProducer",
+      "thread": "http-nio-8080-exec-10",
+      "trace_id": "ord-965693-9648",
+      "request_id": "req_73803726347",
+      "message": "Kafka publish delayed; broker ack lag",
+      "context": {
+        "topic": "payment.events",
+        "lag_ms": 1369,
+        "retries": 2
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:36:05.778Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PspClient",
+      "thread": "http-nio-8080-exec-41",
+      "trace_id": "pay-773044-5521",
+      "request_id": "req_77304455211",
+      "message": "Upstream timeout calling payment provider",
+      "context": {
+        "psp": "adyen",
+        "operation": "authorize",
+        "elapsed_ms": 4200,
+        "http_status": 504
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:36:43.515Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-14",
+      "trace_id": "ord-189132-1647",
+      "request_id": "req_40604441338",
+      "message": "Payment authorization accepted under elevated load",
+      "context": {
+        "amount_cents": 31332,
+        "latency_ms": 339
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:37:06.666Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PspClient",
+      "thread": "http-nio-8080-exec-33",
+      "trace_id": "ord-832516-2837",
+      "request_id": "req_19017046705",
+      "message": "Upstream timeout calling payment provider",
+      "context": {
+        "psp": "adyen",
+        "operation": "authorize",
+        "elapsed_ms": 2524,
+        "http_status": 504
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:37:35.827Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "JdbcTemplate",
+      "thread": "http-nio-8080-exec-1",
+      "trace_id": "bf-663584-5940",
+      "request_id": "req_74408936116",
+      "message": "Slow SQL query detected",
+      "context": {
+        "sql": "UPDATE ledger_accounts SET balance=balance-? WHERE account_id=? AND balance>=?",
+        "duration_ms": 1028,
+        "threshold_ms": 250
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:37:38.389Z",
+      "level": "INFO",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-10",
+      "trace_id": "pay-346190-4362",
+      "request_id": "req_76401654948",
+      "message": "Payment capture completed",
+      "context": {
+        "amount_cents": 32353,
+        "currency": "USD"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:38:13.833Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PspClient",
+      "thread": "http-nio-8080-exec-31",
+      "trace_id": "chk-130703-7747",
+      "request_id": "req_98925810340",
+      "message": "Upstream timeout calling payment provider",
+      "context": {
+        "psp": "stripe",
+        "operation": "authorize",
+        "elapsed_ms": 3946,
+        "http_status": 504
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:38:53.789Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "JdbcTemplate",
+      "thread": "http-nio-8080-exec-11",
+      "trace_id": "pay-338908-7952",
+      "request_id": "req_61218175755",
+      "message": "Slow SQL query detected",
+      "context": {
+        "sql": "SELECT pg_advisory_xact_lock(?)",
+        "duration_ms": 1462,
+        "threshold_ms": 250
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:40:19.595Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "TomcatExecutor",
+      "thread": "http-nio-8080-exec-40",
+      "trace_id": "chk-342020-8620",
+      "request_id": "req_45310828001",
+      "message": "HTTP thread pool critically saturated",
+      "context": {
+        "usage_pct": 82.8,
+        "queued_requests": 146,
+        "max_threads": 200
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:40:41.913Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-63",
+      "trace_id": "ord-797611-1924",
+      "request_id": "req_95679277389",
+      "message": "Connection acquisition wait exceeded soft limit",
+      "context": {
+        "active": 95,
+        "idle": 5,
+        "max": 100,
+        "wait_ms": 4861,
+        "waiters": 16
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:40:51.134Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-7",
+      "trace_id": "bf-293047-7444",
+      "request_id": "req_53661064467",
+      "message": "Connection acquisition wait exceeded soft limit",
+      "context": {
+        "active": 86,
+        "idle": 14,
+        "max": 100,
+        "wait_ms": 5683,
+        "waiters": 14
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:41:16.084Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-60",
+      "trace_id": "bf-426974-7203",
+      "request_id": "req_60848663291",
+      "message": "Payment authorization failed",
+      "context": {
+        "http_status": 500,
+        "error_code": "PAYMENT_DEPENDENCY_FAILURE",
+        "cause": "downstream timeout or pool wait"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:41:58.279Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-45",
+      "trace_id": "ord-229717-4398",
+      "request_id": "req_58877284846",
+      "message": "Connection acquisition wait exceeded soft limit",
+      "context": {
+        "active": 86,
+        "idle": 14,
+        "max": 100,
+        "wait_ms": 1440,
+        "waiters": 22
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:42:00.000Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-63",
+      "trace_id": "pay-950389-3705",
+      "request_id": "req_19539666908",
+      "message": "Unable to acquire JDBC connection from pool",
+      "context": {
+        "active": 94,
+        "idle": 0,
+        "max": 100,
+        "wait_ms": 30012,
+        "exception": "SQLTransientConnectionException"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:42:16.667Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "TomcatExecutor",
+      "thread": "http-nio-8080-exec-61",
+      "trace_id": "chk-490819-9872",
+      "request_id": "req_74078792132",
+      "message": "HTTP thread pool critically saturated",
+      "context": {
+        "usage_pct": 87.2,
+        "queued_requests": 32,
+        "max_threads": 200
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:42:26.752Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "KafkaProducer",
+      "thread": "http-nio-8080-exec-53",
+      "trace_id": "chk-951259-7631",
+      "request_id": "req_61714195773",
+      "message": "Failed to publish payment event after retries",
+      "context": {
+        "topic": "payment.failures",
+        "error": "TimeoutException: Expiring 1 record(s)",
+        "attempts": 3
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:42:46.342Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "KafkaProducer",
+      "thread": "http-nio-8080-exec-9",
+      "trace_id": "pay-480606-5461",
+      "request_id": "req_95700757026",
+      "message": "Failed to publish payment event after retries",
+      "context": {
+        "topic": "payment.events",
+        "error": "NotEnoughReplicasException",
+        "attempts": 3
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:43:10.885Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "KafkaProducer",
+      "thread": "http-nio-8080-exec-1",
+      "trace_id": "bf-125434-4831",
+      "request_id": "req_74885193504",
+      "message": "Failed to publish payment event after retries",
+      "context": {
+        "topic": "payment.failures",
+        "error": "NotEnoughReplicasException",
+        "attempts": 3
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:43:50.116Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-33",
+      "trace_id": "ord-954379-9085",
+      "request_id": "req_33607462158",
+      "message": "Payment authorization failed",
+      "context": {
+        "http_status": 500,
+        "error_code": "PAYMENT_DEPENDENCY_FAILURE",
+        "cause": "downstream timeout or pool wait"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:43:57.325Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "JdbcTemplate",
+      "thread": "http-nio-8080-exec-31",
+      "trace_id": "pay-435071-8549",
+      "request_id": "req_94964110878",
+      "message": "Slow SQL query detected",
+      "context": {
+        "sql": "SELECT * FROM payment_intents WHERE id=? FOR UPDATE",
+        "duration_ms": 4334,
+        "threshold_ms": 250,
+        "rows_locked": 3
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:44:19.055Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "CircuitBreaker",
+      "thread": "http-nio-8080-exec-8",
+      "trace_id": "pay-884155-3302",
+      "request_id": "req_88415533021",
+      "message": "Circuit breaker opened for payment-psp",
+      "context": {
+        "name": "payment-psp",
+        "state": "OPEN",
+        "failure_rate": 0.31,
+        "open_duration_ms": 30000
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:44:22.069Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "RetryTemplate",
+      "thread": "http-nio-8080-exec-9",
+      "trace_id": "bf-605088-9922",
+      "request_id": "req_32873957965",
+      "message": "Retry exhausted for payment operation",
+      "context": {
+        "operation": "authorize",
+        "attempts": 3,
+        "last_error": "CannotGetJdbcConnectionException: Connection pool exhausted"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:45:06.913Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-11",
+      "trace_id": "chk-201106-7898",
+      "request_id": "req_33394528405",
+      "message": "Payment authorization failed",
+      "context": {
+        "http_status": 500,
+        "error_code": "PAYMENT_DEPENDENCY_FAILURE",
+        "cause": "downstream timeout or pool wait"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:45:13.234Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-16",
+      "trace_id": "pay-408052-5577",
+      "request_id": "req_46794487516",
+      "message": "Request timed out waiting for database connection",
+      "context": {
+        "endpoint": "/v1/payments/authorize",
+        "timeout_ms": 10000,
+        "pool_active": 93
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:45:40.479Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "JdbcTemplate",
+      "thread": "http-nio-8080-exec-32",
+      "trace_id": "chk-260769-5609",
+      "request_id": "req_38253500727",
+      "message": "Slow SQL query detected",
+      "context": {
+        "sql": "SELECT * FROM payment_intents WHERE id=? FOR UPDATE",
+        "duration_ms": 3299,
+        "threshold_ms": 250,
+        "rows_locked": 4
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:46:02.663Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "JdbcTemplate",
+      "thread": "http-nio-8080-exec-30",
+      "trace_id": "bf-785062-8600",
+      "request_id": "req_18551089427",
+      "message": "Slow SQL query detected",
+      "context": {
+        "sql": "SELECT * FROM payment_intents WHERE id=? FOR UPDATE",
+        "duration_ms": 2507,
+        "threshold_ms": 250,
+        "rows_locked": 9
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:46:21.086Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "TomcatExecutor",
+      "thread": "http-nio-8080-exec-6",
+      "trace_id": "pay-344205-2953",
+      "request_id": "req_35986232179",
+      "message": "HTTP thread pool critically saturated",
+      "context": {
+        "usage_pct": 84.8,
+        "queued_requests": 134,
+        "max_threads": 200
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:46:56.858Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "CircuitBreaker",
+      "thread": "http-nio-8080-exec-23",
+      "trace_id": "ord-732335-5258",
+      "request_id": "req_22912129921",
+      "message": "Circuit breaker opened for payment-psp",
+      "context": {
+        "name": "payment-psp",
+        "state": "OPEN",
+        "failure_rate": 0.438,
+        "open_duration_ms": 30000
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:47:21.247Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "CircuitBreaker",
+      "thread": "http-nio-8080-exec-44",
+      "trace_id": "chk-146311-4341",
+      "request_id": "req_48654163469",
+      "message": "Circuit breaker opened for payment-psp",
+      "context": {
+        "name": "payment-psp",
+        "state": "OPEN",
+        "failure_rate": 0.317,
+        "open_duration_ms": 30000
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:47:30.743Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "CircuitBreaker",
+      "thread": "http-nio-8080-exec-42",
+      "trace_id": "ord-811269-7091",
+      "request_id": "req_92399570766",
+      "message": "Circuit breaker opened for payment-psp",
+      "context": {
+        "name": "payment-psp",
+        "state": "OPEN",
+        "failure_rate": 0.315,
+        "open_duration_ms": 30000
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:48:00.314Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-53",
+      "trace_id": "bf-934502-7476",
+      "request_id": "req_85866415855",
+      "message": "Connection acquisition wait exceeded soft limit",
+      "context": {
+        "active": 93,
+        "idle": 7,
+        "max": 100,
+        "wait_ms": 5289,
+        "waiters": 35
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:48:20.562Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-37",
+      "trace_id": "pay-538142-1841",
+      "request_id": "req_67368658655",
+      "message": "Connection acquisition wait exceeded soft limit",
+      "context": {
+        "active": 88,
+        "idle": 12,
+        "max": 100,
+        "wait_ms": 4058,
+        "waiters": 22
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:48:50.727Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "KafkaProducer",
+      "thread": "http-nio-8080-exec-51",
+      "trace_id": "ord-313560-1096",
+      "request_id": "req_66507024439",
+      "message": "Failed to publish payment event after retries",
+      "context": {
+        "topic": "payment.failures",
+        "error": "NetworkException: Disconnected from node",
+        "attempts": 3
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:49:06.412Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "RetryTemplate",
+      "thread": "http-nio-8080-exec-17",
+      "trace_id": "bf-154206-3334",
+      "request_id": "req_65447145229",
+      "message": "Retry exhausted for payment operation",
+      "context": {
+        "operation": "capture",
+        "attempts": 3,
+        "last_error": "QueryTimeoutException: canceling statement due to user request"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:49:30.014Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-22",
+      "trace_id": "chk-464846-5641",
+      "request_id": "req_79414465676",
+      "message": "Payment authorization failed",
+      "context": {
+        "http_status": 500,
+        "error_code": "PAYMENT_DEPENDENCY_FAILURE",
+        "cause": "downstream timeout or pool wait"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:49:55.037Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-17",
+      "trace_id": "bf-606185-6153",
+      "request_id": "req_91833620554",
+      "message": "Connection acquisition wait exceeded soft limit",
+      "context": {
+        "active": 93,
+        "idle": 7,
+        "max": 100,
+        "wait_ms": 6973,
+        "waiters": 17
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:50:36.833Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-29",
+      "trace_id": "ord-744590-4213",
+      "request_id": "req_77985843518",
+      "message": "Connection acquisition wait exceeded soft limit",
+      "context": {
+        "active": 97,
+        "idle": 3,
+        "max": 100,
+        "wait_ms": 5881,
+        "waiters": 15
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:50:42.729Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-16",
+      "trace_id": "chk-359060-4155",
+      "request_id": "req_56549732845",
+      "message": "Connection acquisition wait exceeded soft limit",
+      "context": {
+        "active": 94,
+        "idle": 6,
+        "max": 100,
+        "wait_ms": 2081,
+        "waiters": 29
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:51:05.213Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "RetryTemplate",
+      "thread": "http-nio-8080-exec-40",
+      "trace_id": "chk-546420-7376",
+      "request_id": "req_60074348130",
+      "message": "Retry exhausted for payment operation",
+      "context": {
+        "operation": "capture",
+        "attempts": 3,
+        "last_error": "ResourceAccessException: Read timed out"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:51:36.463Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-31",
+      "trace_id": "ord-900656-8508",
+      "request_id": "req_35067770552",
+      "message": "Connection acquisition wait exceeded soft limit",
+      "context": {
+        "active": 86,
+        "idle": 14,
+        "max": 100,
+        "wait_ms": 5869,
+        "waiters": 36
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:52:08.657Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-12",
+      "trace_id": "ord-628840-9358",
+      "request_id": "req_17117172173",
+      "message": "Connection acquisition wait exceeded soft limit",
+      "context": {
+        "active": 88,
+        "idle": 12,
+        "max": 100,
+        "wait_ms": 3737,
+        "waiters": 32
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:52:13.821Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-7",
+      "trace_id": "ord-784453-3231",
+      "request_id": "req_36240480837",
+      "message": "Connection acquisition wait exceeded soft limit",
+      "context": {
+        "active": 97,
+        "idle": 3,
+        "max": 100,
+        "wait_ms": 3370,
+        "waiters": 37
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:53:12.000Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "IncidentDetector",
+      "thread": "http-nio-8080-exec-42",
+      "trace_id": "chk-585655-8189",
+      "request_id": "req_88414132306",
+      "message": "Elevated error rate and pool exhaustion detected; incident likely",
+      "context": {
+        "error_rate": 0.109,
+        "db_connections_used": 95,
+        "db_connection_limit": 100,
+        "suggested_severity": "critical"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:53:12.717Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "JdbcTemplate",
+      "thread": "http-nio-8080-exec-36",
+      "trace_id": "ord-250546-5164",
+      "request_id": "req_78375483412",
+      "message": "Slow SQL query detected under lock contention",
+      "context": {
+        "sql": "UPDATE ledger_accounts SET balance=balance-? WHERE account_id=?",
+        "duration_ms": 4300,
+        "threshold_ms": 250
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:53:17.809Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "RetryTemplate",
+      "thread": "http-nio-8080-exec-41",
+      "trace_id": "pay-138622-4259",
+      "request_id": "req_62321705587",
+      "message": "All retries failed; returning payment failure to checkout-service",
+      "context": {
+        "operation": "authorize",
+        "attempts": 3,
+        "downstream": "checkout-service"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:53:31.656Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "RetryTemplate",
+      "thread": "http-nio-8080-exec-22",
+      "trace_id": "pay-220668-9695",
+      "request_id": "req_96107959244",
+      "message": "All retries failed; returning payment failure to checkout-service",
+      "context": {
+        "operation": "authorize",
+        "attempts": 3,
+        "downstream": "checkout-service"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:53:56.900Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "KafkaProducer",
+      "thread": "http-nio-8080-exec-14",
+      "trace_id": "pay-661723-7459",
+      "request_id": "req_45955173636",
+      "message": "Kafka publish failure; event dropped to local DLQ buffer",
+      "context": {
+        "topic": "payment.events",
+        "dlq": "payment.events.dlq",
+        "error": "TimeoutException: Expiring record(s)"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:54:03.895Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "RetryTemplate",
+      "thread": "http-nio-8080-exec-43",
+      "trace_id": "bf-563765-4769",
+      "request_id": "req_92363540119",
+      "message": "All retries failed; returning payment failure to checkout-service",
+      "context": {
+        "operation": "authorize",
+        "attempts": 3,
+        "downstream": "checkout-service"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:54:23.423Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-41",
+      "trace_id": "bf-883411-1553",
+      "request_id": "req_28131795049",
+      "message": "Client-facing request timeout",
+      "context": {
+        "endpoint": "/v1/payments/confirm",
+        "latency_ms": 9155,
+        "http_status": 504
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:54:31.960Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "CircuitBreaker",
+      "thread": "http-nio-8080-exec-17",
+      "trace_id": "ord-338299-1746",
+      "request_id": "req_14390700069",
+      "message": "Circuit breaker payment-psp remains OPEN; failing fast",
+      "context": {
+        "name": "payment-psp",
+        "state": "OPEN",
+        "short_circuits": 226
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:54:42.013Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-29",
+      "trace_id": "ord-711939-5934",
+      "request_id": "req_29709998373",
+      "message": "Client-facing request timeout",
+      "context": {
+        "endpoint": "/v1/payments/confirm",
+        "latency_ms": 10851,
+        "http_status": 504
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:54:59.730Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-32",
+      "trace_id": "chk-572753-2569",
+      "request_id": "req_96172800650",
+      "message": "Payment authorization failed due to dependency saturation",
+      "context": {
+        "http_status": 503,
+        "error_code": "SERVICE_UNAVAILABLE",
+        "db_pool": "exhausted",
+        "traffic_multiplier": 4.73
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:55:13.426Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-2",
+      "trace_id": "bf-776276-6739",
+      "request_id": "req_98453667187",
+      "message": "Payment authorization failed due to dependency saturation",
+      "context": {
+        "http_status": 503,
+        "error_code": "SERVICE_UNAVAILABLE",
+        "db_pool": "exhausted",
+        "traffic_multiplier": 4.92
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:55:34.174Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "SloMonitor",
+      "thread": "http-nio-8080-exec-22",
+      "trace_id": "bf-146139-2008",
+      "request_id": "req_12282892820",
+      "message": "Payment service SLO breach",
+      "context": {
+        "slo": "availability",
+        "target": 0.995,
+        "observed": 0.8447,
+        "window": "5m"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:55:45.813Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-26",
+      "trace_id": "chk-533248-4268",
+      "request_id": "req_93830280166",
+      "message": "Database connection pool exhausted",
+      "context": {
+        "active": 100,
+        "idle": 0,
+        "max": 100,
+        "waiters": 76,
+        "rejected": true,
+        "exception": "HikariPool$PoolInitializationException"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:56:04.185Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "RetryTemplate",
+      "thread": "http-nio-8080-exec-23",
+      "trace_id": "pay-166864-5919",
+      "request_id": "req_16983461419",
+      "message": "All retries failed; returning payment failure to checkout-service",
+      "context": {
+        "operation": "authorize",
+        "attempts": 3,
+        "downstream": "checkout-service"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:56:23.880Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-49",
+      "trace_id": "ord-881385-8622",
+      "request_id": "req_72945027479",
+      "message": "Payment authorization failed due to dependency saturation",
+      "context": {
+        "http_status": 503,
+        "error_code": "SERVICE_UNAVAILABLE",
+        "db_pool": "exhausted",
+        "traffic_multiplier": 5.17
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:56:25.878Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-43",
+      "trace_id": "pay-846255-1860",
+      "request_id": "req_97041754416",
+      "message": "Client-facing request timeout",
+      "context": {
+        "endpoint": "/v1/payments/confirm",
+        "latency_ms": 5635,
+        "http_status": 504
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:56:46.226Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "JdbcTemplate",
+      "thread": "http-nio-8080-exec-38",
+      "trace_id": "chk-189570-9313",
+      "request_id": "req_31540238980",
+      "message": "Slow SQL query detected under lock contention",
+      "context": {
+        "sql": "UPDATE ledger_accounts SET balance=balance-? WHERE account_id=?",
+        "duration_ms": 7286,
+        "threshold_ms": 250
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:56:56.278Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-42",
+      "trace_id": "chk-507589-6383",
+      "request_id": "req_42647038228",
+      "message": "Payment authorization failed due to dependency saturation",
+      "context": {
+        "http_status": 503,
+        "error_code": "SERVICE_UNAVAILABLE",
+        "db_pool": "exhausted",
+        "traffic_multiplier": 4.76
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:57:13.154Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "RetryTemplate",
+      "thread": "http-nio-8080-exec-61",
+      "trace_id": "ord-980501-9693",
+      "request_id": "req_12996247415",
+      "message": "All retries failed; returning payment failure to checkout-service",
+      "context": {
+        "operation": "authorize",
+        "attempts": 3,
+        "downstream": "checkout-service"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:57:33.640Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "KafkaProducer",
+      "thread": "http-nio-8080-exec-55",
+      "trace_id": "pay-995266-7710",
+      "request_id": "req_99526677101",
+      "message": "Failed to publish payment event after retries",
+      "context": {
+        "topic": "notification.commands",
+        "error": "TimeoutException: Expiring 1 record(s)",
+        "attempts": 3
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:57:34.185Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "SloMonitor",
+      "thread": "http-nio-8080-exec-28",
+      "trace_id": "ord-752866-2274",
+      "request_id": "req_27916653901",
+      "message": "Payment service SLO breach",
+      "context": {
+        "slo": "availability",
+        "target": 0.995,
+        "observed": 0.7598,
+        "window": "5m"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:57:36.398Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-4",
+      "trace_id": "bf-143672-3267",
+      "request_id": "req_98874148566",
+      "message": "Database connection pool exhausted",
+      "context": {
+        "active": 100,
+        "idle": 0,
+        "max": 100,
+        "waiters": 91,
+        "rejected": true,
+        "exception": "SQLTransientConnectionException"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:58:00.237Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-47",
+      "trace_id": "chk-957275-9747",
+      "request_id": "req_65595455981",
+      "message": "Database connection pool exhausted",
+      "context": {
+        "active": 100,
+        "idle": 0,
+        "max": 100,
+        "waiters": 61,
+        "rejected": true,
+        "exception": "HikariPool$PoolInitializationException"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:58:06.603Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-12",
+      "trace_id": "pay-600291-2636",
+      "request_id": "req_23454645352",
+      "message": "Client-facing request timeout",
+      "context": {
+        "endpoint": "/v1/payments/authorize",
+        "latency_ms": 5564,
+        "http_status": 504
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:58:31.512Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-34",
+      "trace_id": "bf-467946-5205",
+      "request_id": "req_52649443784",
+      "message": "Client-facing request timeout",
+      "context": {
+        "endpoint": "/v1/payments/capture",
+        "latency_ms": 10513,
+        "http_status": 504
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:58:35.351Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "CircuitBreaker",
+      "thread": "http-nio-8080-exec-61",
+      "trace_id": "pay-748309-1507",
+      "request_id": "req_69223543952",
+      "message": "Circuit breaker payment-psp remains OPEN; failing fast",
+      "context": {
+        "name": "payment-psp",
+        "state": "OPEN",
+        "short_circuits": 204
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:58:49.371Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "JdbcTemplate",
+      "thread": "http-nio-8080-exec-7",
+      "trace_id": "chk-849092-2489",
+      "request_id": "req_32707963173",
+      "message": "Slow SQL query detected under lock contention",
+      "context": {
+        "sql": "UPDATE ledger_accounts SET balance=balance-? WHERE account_id=?",
+        "duration_ms": 5840,
+        "threshold_ms": 250
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:59:09.769Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-63",
+      "trace_id": "bf-615358-4023",
+      "request_id": "req_78578413663",
+      "message": "Client-facing request timeout",
+      "context": {
+        "endpoint": "/v1/payments/authorize",
+        "latency_ms": 5071,
+        "http_status": 504
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:59:26.871Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "KafkaProducer",
+      "thread": "http-nio-8080-exec-21",
+      "trace_id": "pay-954842-4517",
+      "request_id": "req_75418912711",
+      "message": "Kafka publish failure; event dropped to local DLQ buffer",
+      "context": {
+        "topic": "payment.events",
+        "dlq": "payment.events.dlq",
+        "error": "TimeoutException: Expiring record(s)"
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:59:34.993Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "JdbcTemplate",
+      "thread": "http-nio-8080-exec-14",
+      "trace_id": "pay-472891-2558",
+      "request_id": "req_66204684654",
+      "message": "Slow SQL query detected under lock contention",
+      "context": {
+        "sql": "UPDATE ledger_accounts SET balance=balance-? WHERE account_id=?",
+        "duration_ms": 7016,
+        "threshold_ms": 250
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:59:41.000Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1a",
+      "logger": "PostgresPool",
+      "thread": "http-nio-8080-exec-17",
+      "trace_id": "pay-584460-4898",
+      "request_id": "req_37950373343",
+      "message": "Database connection pool exhausted",
+      "context": {
+        "active": 100,
+        "idle": 0,
+        "max": 100,
+        "waiters": 198,
+        "rejected": true
+      }
+    },
+    {
+      "timestamp": "2025-11-28T13:59:59.373Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "CircuitBreaker",
+      "thread": "http-nio-8080-exec-55",
+      "trace_id": "chk-497730-4826",
+      "request_id": "req_74183648059",
+      "message": "Circuit breaker payment-psp remains OPEN; failing fast",
+      "context": {
+        "name": "payment-psp",
+        "state": "OPEN",
+        "short_circuits": 195
+      }
+    },
+    {
+      "timestamp": "2025-11-28T14:00:03.417Z",
+      "level": "WARN",
+      "service": "payment-service",
+      "host": "payment-svc-1c",
+      "logger": "JdbcTemplate",
+      "thread": "http-nio-8080-exec-5",
+      "trace_id": "pay-709831-6352",
+      "request_id": "req_29420691863",
+      "message": "Slow SQL query detected under lock contention",
+      "context": {
+        "sql": "UPDATE ledger_accounts SET balance=balance-? WHERE account_id=?",
+        "duration_ms": 7959,
+        "threshold_ms": 250
+      }
+    },
+    {
+      "timestamp": "2025-11-28T14:00:05.000Z",
+      "level": "ERROR",
+      "service": "payment-service",
+      "host": "payment-svc-1b",
+      "logger": "PaymentController",
+      "thread": "http-nio-8080-exec-39",
+      "trace_id": "chk-858472-3555",
+      "request_id": "req_44251364916",
+      "message": "Widespread payment failures; Black Friday traffic overwhelming payment-service",
+      "context": {
+        "success_rate": 0.72,
+        "latency_p99_ms": 2418,
+        "traffic_multiplier": 5.4
+      }
+    }
+  ]
 }

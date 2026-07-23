@@ -2,38 +2,56 @@
 Incident investigation orchestrator.
 
 Coordinates detection → investigation → dependency → impact → prediction → recommendation.
-
-LangGraph is optional: keep a simple sequential runner first; swap in a StateGraph later.
 """
+
+from __future__ import annotations
 
 from typing import Any
 
 from app.agents.dependency_agent import DependencyAgent
-from app.agents.detection_agent import DetectionAgent
+from app.agents.detection_agent import DetectionAgent, DetectionResult
 from app.agents.impact_agent import ImpactAgent
 from app.agents.investigation_agent import InvestigationAgent
 from app.agents.prediction_agent import PredictionAgent
 from app.agents.recommendation_agent import RecommendationAgent
-from app.models.incident import InvestigationResult
+from app.models.incident import Incident, InvestigationResult
+from app.services.llm_service import LLMService, create_llm_service
 
 
 class IncidentOrchestrator:
-    """
-    Multi-agent pipeline coordinator.
+    """Multi-agent pipeline coordinator."""
 
-    TODO: Define shared state schema (dict or Pydantic) passed between agents.
-    TODO: Optionally compile a LangGraph StateGraph with the same agent nodes.
-    TODO: Persist results in-memory for GET /incidents/{id} (no database).
-    """
+    def __init__(self, llm: LLMService | None = None) -> None:
+        self.llm = llm or create_llm_service()
+        self.detection = DetectionAgent(llm=self.llm)
+        self.investigation = InvestigationAgent(llm=self.llm)
+        self.dependency = DependencyAgent(llm=self.llm)
+        self.impact = ImpactAgent(llm=self.llm)
+        self.prediction = PredictionAgent(llm=self.llm)
+        self.recommendation = RecommendationAgent(llm=self.llm)
+        # In-memory store for hackathon (no database)
+        self._incidents: dict[str, Incident] = {}
+        self._detections: dict[str, DetectionResult] = {}
 
-    def __init__(self) -> None:
-        # TODO: Inject LLMClient / GeminiLLMClient and shared tools.
-        self.detection = DetectionAgent()
-        self.investigation = InvestigationAgent()
-        self.dependency = DependencyAgent()
-        self.impact = ImpactAgent()
-        self.prediction = PredictionAgent()
-        self.recommendation = RecommendationAgent()
+    async def detect(
+        self,
+        service: str | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Run DetectionAgent only and optionally persist the incident."""
+        context: dict[str, Any] = {"service": service, **kwargs}
+        partial = await self.detection.run(context)
+        detection_raw = partial.get("detection") or {}
+        detection = DetectionResult.model_validate(detection_raw)
+        incident = partial.get("incident")
+        if isinstance(incident, Incident):
+            self._incidents[incident.id] = incident
+            self._detections[incident.id] = detection
+        return {
+            "detection": detection,
+            "incident": incident,
+            "next_agent": detection.next_agent,
+        }
 
     async def run(
         self,
@@ -42,26 +60,27 @@ class IncidentOrchestrator:
         **kwargs: Any,
     ) -> InvestigationResult | None:
         """
-        Execute the full investigation pipeline.
+        Execute the investigation pipeline.
 
-        Returns InvestigationResult when implemented; None while skeleton-only.
+        Currently runs DetectionAgent; remaining agents are wired later.
         """
-        context: dict[str, Any] = {
-            "incident_id": incident_id,
-            "service": service,
-            **kwargs,
-        }
+        detect_out = await self.detect(service=service, **kwargs)
+        incident = detect_out.get("incident")
+        detection: DetectionResult = detect_out["detection"]
 
-        # TODO: Sequential agent chain (or LangGraph invoke).
-        # context.update(await self.detection.run(context))
+        if not detection.incident_created or not isinstance(incident, Incident):
+            return None
+
+        # TODO: Continue with investigation / dependency / impact / prediction / recommendation
         # context.update(await self.investigation.run(context))
-        # context.update(await self.dependency.run(context))
-        # context.update(await self.impact.run(context))
-        # context.update(await self.prediction.run(context))
-        # context.update(await self.recommendation.run(context))
-        # return InvestigationResult(...)
+        _ = incident_id
+        return InvestigationResult(
+            incident_id=incident.id,
+            agent_traces={"detection": detection.model_dump()},
+        )
 
-        _ = context
-        return None
+    def get_incident(self, incident_id: str) -> Incident | None:
+        return self._incidents.get(incident_id)
 
-    # TODO: def build_langgraph(self) -> CompiledGraph: ...
+    def list_incidents(self) -> list[Incident]:
+        return list(self._incidents.values())
