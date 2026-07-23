@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from abc import ABC, abstractmethod
 from typing import Any
 
 from app.core.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 
 class LLMService(ABC):
@@ -99,8 +102,61 @@ class HeuristicLLMService(LLMService):
 
     async def generate_json(self, prompt: str, **kwargs: Any) -> dict[str, Any]:
         _ = kwargs
+        # InvestigationAgent embeds EVIDENCE_PACK — synthesize RCA from that pack only.
+        if "EVIDENCE_PACK:" in prompt:
+            pack = _evidence_pack_from_prompt(prompt)
+            return _reason_over_evidence_pack(pack)
         timeline = _timeline_from_prompt(prompt)
         return _reason_over_timeline(timeline)
+
+
+class ResilientLLMService(LLMService):
+    """
+    Tries a primary LLM (e.g. Gemini); on runtime failures (quota 429, network,
+    empty responses, JSON parse errors) falls back to a secondary service.
+    """
+
+    def __init__(
+        self,
+        primary: LLMService,
+        fallback: LLMService,
+    ) -> None:
+        self.primary = primary
+        self.fallback = fallback
+        self.last_provider: str = type(primary).__name__
+        self.last_fallback_reason: str | None = None
+
+    async def generate(self, prompt: str, **kwargs: Any) -> str:
+        try:
+            text = await self.primary.generate(prompt, **kwargs)
+            self.last_provider = type(self.primary).__name__
+            self.last_fallback_reason = None
+            return text
+        except Exception as exc:
+            self.last_provider = type(self.fallback).__name__
+            self.last_fallback_reason = f"{type(exc).__name__}: {exc}"
+            logger.warning(
+                "Primary LLM failed (%s); falling back to %s",
+                self.last_fallback_reason,
+                type(self.fallback).__name__,
+            )
+            return await self.fallback.generate(prompt, **kwargs)
+
+    async def generate_json(self, prompt: str, **kwargs: Any) -> dict[str, Any]:
+        try:
+            data = await self.primary.generate_json(prompt, **kwargs)
+            self.last_provider = type(self.primary).__name__
+            self.last_fallback_reason = None
+            return data
+        except Exception as exc:
+            self.last_provider = type(self.fallback).__name__
+            self.last_fallback_reason = f"{type(exc).__name__}: {exc}"
+            logger.warning(
+                "Primary LLM JSON failed (%s); falling back to %s",
+                self.last_fallback_reason,
+                type(self.fallback).__name__,
+            )
+            return await self.fallback.generate_json(prompt, **kwargs)
 
 
 def _timeline_from_prompt(prompt: str) -> list[dict[str, Any]]:
@@ -120,6 +176,34 @@ def _timeline_from_prompt(prompt: str) -> list[dict[str, Any]]:
         timeline = payload.get("timeline", [])
         return timeline if isinstance(timeline, list) else []
     return []
+
+
+def _evidence_pack_from_prompt(prompt: str) -> dict[str, Any]:
+    """Extract EVIDENCE_PACK JSON embedded by InvestigationAgent."""
+    marker = "EVIDENCE_PACK:"
+    if marker not in prompt:
+        return {}
+    raw = prompt.split(marker, 1)[1].strip()
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", raw, flags=re.DOTALL)
+        if not match:
+            return {}
+        payload = json.loads(match.group(0))
+    return payload if isinstance(payload, dict) else {}
+
+
+def _reason_over_evidence_pack(pack: dict[str, Any]) -> dict[str, Any]:
+    """
+    Offline RCA using only facts present in the evidence pack.
+
+    Delegates to InvestigationAgent.synthesize_from_evidence to keep one source of truth.
+    """
+    from app.agents.investigation_agent import InvestigationAgent
+
+    finding = InvestigationAgent.synthesize_from_evidence(pack)
+    return finding.model_dump()
 
 
 def _avg(values: list[float]) -> float:
@@ -270,8 +354,9 @@ def create_llm_service(
     allow_heuristic_fallback: bool | None = None,
 ) -> LLMService:
     """
-    Factory: prefer Gemini when an API key is present; optionally fall back offline.
+    Factory: prefer Gemini when an API key is present; wrap with runtime fallback.
 
+    Catch-and-fallback covers quota (429), network errors, empty responses, etc.
     Reads secrets from Settings (env / backend/.env) — never from committed files.
     """
     settings = get_settings()
@@ -282,15 +367,26 @@ def create_llm_service(
         if allow_heuristic_fallback is None
         else allow_heuristic_fallback
     )
+    heuristic = HeuristicLLMService()
 
     if key:
         try:
-            return GeminiLLMService(api_key=key, model=model_name)
-        except Exception:
+            gemini = GeminiLLMService(api_key=key, model=model_name)
+        except Exception as exc:
             if not use_fallback:
                 raise
+            logger.warning(
+                "GeminiLLMService init failed (%s); using HeuristicLLMService only",
+                exc,
+            )
+            return heuristic
+
+        if use_fallback:
+            return ResilientLLMService(primary=gemini, fallback=heuristic)
+        return gemini
+
     if use_fallback:
-        return HeuristicLLMService()
+        return heuristic
     raise ValueError(
         "No LLMService available. Set GEMINI_API_KEY in backend/.env "
         "(copy from .env.example) or enable ALLOW_HEURISTIC_LLM_FALLBACK."

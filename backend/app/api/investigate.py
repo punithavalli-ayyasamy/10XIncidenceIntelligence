@@ -1,116 +1,135 @@
-"""Incident investigation API routes."""
+"""Incident investigation / orchestration API routes."""
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.agents.detection_agent import DetectionResult
-from app.models.incident import Incident, InvestigationResult
-from app.services.orchestrator import IncidentOrchestrator
+from app.models.incident import Incident
+from app.models.report import IncidentIntelligenceReport
+from app.services.orchestrator import OrchestrationService
 
 router = APIRouter()
 
-# Shared orchestrator instance for in-memory incident store within process lifetime.
-_orchestrator = IncidentOrchestrator()
+# Shared orchestration service (in-memory report store for process lifetime).
+_orchestration = OrchestrationService()
 
 
-class InvestigateRequest(BaseModel):
-    """Request body to kick off detection / investigation."""
+class PipelineRequest(BaseModel):
+    """Request to run the AI orchestration pipeline."""
 
-    incident_id: str | None = Field(
-        default=None,
-        description="Existing incident id; if omitted, detection may create one.",
-    )
     service: str | None = Field(
         default="payment-service",
-        description="Service name to scope detection/investigation.",
+        description="Service to analyze (loads matching mock metrics when omitted metrics).",
+    )
+    incident_id: str | None = Field(
+        default=None,
+        description="Optional advisory incident id.",
     )
 
 
 class DetectResponse(BaseModel):
-    """DetectionAgent structured output (+ optional Incident)."""
-
-    detection: DetectionResult
-    incident: Incident | None = None
-    message: str = "Detection complete."
-
-
-class InvestigateResponse(BaseModel):
-    """API response wrapping detection / investigation pipeline result."""
+    """Detection-only response (subset of the full report)."""
 
     detection: DetectionResult | None = None
     incident: Incident | None = None
-    result: InvestigationResult | None = None
-    message: str = "Investigation pipeline partial."
+    report: IncidentIntelligenceReport
+    message: str = "Detection complete."
+
+
+@router.post(
+    "/report",
+    response_model=IncidentIntelligenceReport,
+    status_code=status.HTTP_200_OK,
+    summary="Run full AI orchestration → Incident Intelligence Report",
+)
+async def run_report(request: PipelineRequest | None = None) -> IncidentIntelligenceReport:
+    """
+    Pipeline: metrics → DetectionAgent → [if incident] InvestigationAgent → Report.
+
+    Each agent receives the previous agent's output via shared pipeline context.
+    """
+    body = request or PipelineRequest()
+    return await _orchestration.run(
+        service=body.service,
+        incident_id=body.incident_id,
+    )
+
+
+@router.post(
+    "/investigate",
+    response_model=IncidentIntelligenceReport,
+    status_code=status.HTTP_200_OK,
+    summary="Alias for /report (detection + investigation pipeline)",
+)
+async def investigate(request: PipelineRequest | None = None) -> IncidentIntelligenceReport:
+    """Same as POST /api/v1/report — returns one Incident Intelligence Report."""
+    body = request or PipelineRequest()
+    return await _orchestration.run(
+        service=body.service,
+        incident_id=body.incident_id,
+    )
 
 
 @router.post(
     "/detect",
     response_model=DetectResponse,
     status_code=status.HTTP_200_OK,
-    summary="Run DetectionAgent on payment metrics",
+    summary="Run DetectionAgent only",
 )
-async def detect(request: InvestigateRequest | None = None) -> DetectResponse:
-    """Analyze payment_metrics.json and decide whether to open an incident."""
-    body = request or InvestigateRequest()
-    out = await _orchestrator.detect(service=body.service)
-    detection: DetectionResult = out["detection"]
-    incident = out.get("incident")
+async def detect(request: PipelineRequest | None = None) -> DetectResponse:
+    """Run DetectionAgent only and wrap the result in a report envelope."""
+    body = request or PipelineRequest()
+    report = await _orchestration.detect_only(service=body.service)
     msg = (
-        "Incident created; hand off to InvestigationAgent."
-        if detection.incident_created
+        "Incident created; hand off to InvestigationAgent via POST /api/v1/report."
+        if report.detection and report.detection.incident_created
         else "No incident created."
     )
-    return DetectResponse(detection=detection, incident=incident, message=msg)
-
-
-@router.post(
-    "/investigate",
-    response_model=InvestigateResponse,
-    status_code=status.HTTP_202_ACCEPTED,
-    summary="Run autonomous incident investigation (starts with detection)",
-)
-async def investigate(request: InvestigateRequest) -> InvestigateResponse:
-    """Trigger detection (and later full multi-agent investigation)."""
-    detect_out = await _orchestrator.detect(service=request.service)
-    detection: DetectionResult = detect_out["detection"]
-    incident = detect_out.get("incident")
-
-    result = None
-    if detection.incident_created and isinstance(incident, Incident):
-        result = InvestigationResult(
-            incident_id=incident.id,
-            agent_traces={"detection": detection.model_dump()},
-        )
-
-    return InvestigateResponse(
-        detection=detection,
-        incident=incident,
-        result=result,
-        message=(
-            "Detection complete; investigation agents not fully wired yet."
-            if detection.incident_created
-            else "Detection complete; no incident opened."
-        ),
+    return DetectResponse(
+        detection=report.detection,
+        incident=report.incident,
+        report=report,
+        message=msg,
     )
 
 
 @router.get(
-    "/incidents/{incident_id}",
-    response_model=InvestigateResponse,
-    summary="Fetch investigation status / result",
+    "/reports/{report_id}",
+    response_model=IncidentIntelligenceReport,
+    summary="Fetch a previously generated report",
 )
-async def get_incident(incident_id: str) -> InvestigateResponse:
-    """Retrieve a previously created incident from in-memory store."""
-    incident = _orchestrator.get_incident(incident_id)
+async def get_report(report_id: str) -> IncidentIntelligenceReport:
+    report = _orchestration.get_report(report_id)
+    if report is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Report '{report_id}' not found. Run POST /api/v1/report first.",
+        )
+    return report
+
+
+@router.get(
+    "/reports",
+    response_model=list[IncidentIntelligenceReport],
+    summary="List reports from this process",
+)
+async def list_reports() -> list[IncidentIntelligenceReport]:
+    return _orchestration.list_reports()
+
+
+@router.get(
+    "/incidents/{incident_id}",
+    response_model=Incident,
+    summary="Fetch an incident record",
+)
+async def get_incident(incident_id: str) -> Incident:
+    incident = _orchestration.get_incident(incident_id)
     if incident is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Incident '{incident_id}' not found. Run POST /api/v1/detect first.",
+            detail=f"Incident '{incident_id}' not found.",
         )
-    return InvestigateResponse(
-        incident=incident,
-        message="Incident loaded from in-memory store.",
-    )
+    return incident
 
 
 @router.get(
@@ -119,5 +138,12 @@ async def get_incident(incident_id: str) -> InvestigateResponse:
     summary="List known incidents",
 )
 async def list_incidents() -> list[Incident]:
-    """List incidents created during this process lifetime."""
-    return _orchestrator.list_incidents()
+    return _orchestration.list_incidents()
+
+
+@router.get(
+    "/pipeline",
+    summary="Show configured orchestration pipeline steps",
+)
+async def get_pipeline() -> dict[str, list[str]]:
+    return {"pipeline": _orchestration.pipeline_names}

@@ -13,6 +13,11 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
+# Node
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+
 # IDE / OS
 .idea/
 .vscode/

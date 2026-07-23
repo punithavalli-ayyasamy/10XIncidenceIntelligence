@@ -1,4 +1,47 @@
 {
-  "description": "Placeholder deployment history. TODO: add recent deploys correlated with anomalies.",
-  "deployments": []
+  "description": "Recent deployment and change history correlated with the Black Friday payment degradation window (2025-11-28 13:00-14:00Z).",
+  "deployments": [
+    {
+      "id": "dep-pay-20251128-0915",
+      "service": "payment-service",
+      "version": "payment-service@2.14.3",
+      "previous_version": "payment-service@2.14.2",
+      "environment": "production",
+      "deployed_at": "2025-11-28T09:15:00Z",
+      "deployed_by": "payments-team",
+      "change_type": "config",
+      "summary": "Raised PSP authorize timeout from 1500ms to 2000ms ahead of Black Friday.",
+      "risk": "low",
+      "rollback_available": true,
+      "notes": "No change to HikariCP max pool size (remained 100)."
+    },
+    {
+      "id": "dep-chk-20251128-1102",
+      "service": "checkout",
+      "version": "checkout@5.8.1",
+      "previous_version": "checkout@5.8.0",
+      "environment": "production",
+      "deployed_at": "2025-11-28T11:02:00Z",
+      "deployed_by": "checkout-team",
+      "change_type": "feature",
+      "summary": "Enabled Black Friday promo banner and increased checkout client retries to payment-service (max 3).",
+      "risk": "medium",
+      "rollback_available": true,
+      "notes": "May amplify load on payment-service during retries under failure."
+    },
+    {
+      "id": "dep-inv-20251127-2200",
+      "service": "inventory",
+      "version": "inventory@3.2.0",
+      "previous_version": "inventory@3.1.9",
+      "environment": "production",
+      "deployed_at": "2025-11-27T22:00:00Z",
+      "deployed_by": "inventory-team",
+      "change_type": "routine",
+      "summary": "Routine inventory cache TTL tweak.",
+      "risk": "low",
+      "rollback_available": true,
+      "notes": "Unrelated to payment Postgres pool."
+    }
+  ]
 }
