@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Timer } from 'lucide-react'
 import { Panel } from '@/components/ui/panel'
 
+/** Compact countdown for Mission Control top row */
 export function PredictionCountdown({ initialMinutes = 8 }: { initialMinutes?: number }) {
   const [seconds, setSeconds] = useState(Math.round(initialMinutes * 60))
 
@@ -16,18 +17,15 @@ export function PredictionCountdown({ initialMinutes = 8 }: { initialMinutes?: n
   const s = seconds % 60
 
   return (
-    <Panel className="p-4" glow="red">
-      <div className="mb-2 flex items-center gap-2 text-critical">
-        <Timer className="h-4 w-4" />
-        <span className="font-mono text-[11px] uppercase tracking-[0.18em]">
-          Prediction countdown
-        </span>
+    <Panel className="p-3" glow="red">
+      <div className="mb-1 flex items-center gap-1.5 text-critical">
+        <Timer className="h-3.5 w-3.5" />
+        <span className="font-mono text-[10px] uppercase tracking-[0.16em]">Outage Prediction</span>
       </div>
-      <p className="text-sm text-ink-dim">Checkout collapse forecast if unrecovered</p>
-      <p className="mt-3 font-display text-4xl text-critical text-glow-orange">
+      <p className="font-display text-3xl text-critical">
         {String(m).padStart(2, '0')}:{String(s).padStart(2, '0')}
       </p>
-      <p className="mt-1 font-mono text-xs text-muted">AI predicted window · &lt; 10 minutes</p>
+      <p className="mt-0.5 text-[11px] text-ink-dim">Checkout collapse if unrecovered</p>
     </Panel>
   )
 }

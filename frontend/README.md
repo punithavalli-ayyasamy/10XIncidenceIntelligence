@@ -1,16 +1,6 @@
-# 10X Incident Intelligence — Frontend
+# 10X Incident Intelligence — Mission Control
 
-Futuristic AI Operations Command Center for the **10th Anniversary Hackathon**.
-
-## Stack
-
-- React + TypeScript + Vite
-- Tailwind CSS v4
-- Framer Motion
-- Recharts
-- React Flow
-- Lucide Icons
-- shadcn-style UI primitives
+AI Mission Control UI for the **10th Anniversary Hackathon**.
 
 ## Run
 
@@ -22,10 +12,13 @@ npm run dev
 
 Open http://localhost:5173
 
-## Story
+## Tabs
 
-The dashboard narrates an autonomous Black Friday payment incident:
+1. **Dashboard** — 30-second incident brief  
+2. **Investigation** — SRE RCA workspace  
+3. **Service Graph** — React Flow + service side panel  
+4. **AI Agents** — Sentinel · Investigator · Navigator · Oracle · Healer  
+5. **Self-Healing** — executable remediations with rollback  
+6. **Executive Report** — CTO brief  
 
-detect → investigate → predict → recommend → self-heal — **10× faster** than human MTTR.
-
-Mock data lives in `src/data/mockReport.ts` and `src/data/metrics_sample.json` (sampled from backend `payment_metrics.json`).
+Viewport-locked layout (`overflow: hidden`) with glassmorphism Mission Control styling. Mock story data in `src/data/mockReport.ts`.

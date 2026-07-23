@@ -1,82 +1,59 @@
 # 10X Incident Intelligence — Backend
 
-Autonomous AI incident investigation platform (hackathon scaffold).
+Autonomous AI incident investigation platform (hackathon).
 
 Detects anomalies from metrics, creates incidents, investigates root cause, predicts business impact, and recommends remediation.
-
-## Status
-
-**Scaffold only** — folders, placeholder classes, interfaces, TODO comments, and API skeletons. Business logic is not implemented yet.
 
 ## Stack
 
 - Python 3.12
 - FastAPI + Uvicorn
 - Pydantic
-- LangGraph (optional placeholder)
-- Google Gemini API (abstract `LLMClient` / `GeminiLLMClient`)
+- LangGraph (optional)
+- Google Gemini API via `LLMService`
 - JSON mock data (no database)
-
-## Project layout
-
-```
-backend/
-├── app/
-│   ├── agents/          # Detection, investigation, dependency, impact, prediction, recommendation
-│   ├── tools/           # Metrics, logs, topology, deployment, traffic
-│   ├── services/        # IncidentOrchestrator (+ future LangGraph wiring)
-│   ├── api/             # /api/v1/investigate routes
-│   ├── models/          # Incident + metric Pydantic models
-│   ├── prompts/         # Agent prompt stubs
-│   ├── mock_data/       # JSON fixtures
-│   └── main.py          # FastAPI entrypoint
-├── requirements.txt
-└── README.md
-```
 
 ## Setup
 
 ```bash
 cd backend
-python3 -m venv .venv   # or: brew install python@3.12 && python3.12 -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+cp .env.example .env   # set GEMINI_API_KEY locally
 ```
 
-### Gemini API key (secure)
-
-Do **not** put the key in source code.
-
-```bash
-cp .env.example .env
-# edit .env and set GEMINI_API_KEY=...
-```
-
-`backend/.env` is gitignored. Settings are loaded via `app/core/config.py` (`pydantic-settings`). You can also export the var in your shell / CI secrets instead of using a file.
-
-## Run
-
-From the `backend/` directory (so `app` is importable):
+## Run locally
 
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-- Health: `GET http://localhost:8000/health`
-- OpenAPI: `http://localhost:8000/docs`
+- Health: `GET /health`
+- Docs: `/docs`
+- Report: `POST /api/v1/report`
 
-## API skeletons
+## Deploy to GCP from GitHub
+
+Do **not** deploy from local disk. Push to GitHub; Cloud Build pulls the commit and deploys:
+
+```
+git push origin main → Cloud Build → Artifact Registry → Cloud Run
+```
+
+| File | Purpose |
+|------|---------|
+| `backend/Dockerfile` | FastAPI container image |
+| `backend/.dockerignore` | Excludes `.env` / venv from image |
+| `cloudbuild.yaml` (repo root) | Build + push + Cloud Run deploy |
+
+Full trigger setup: [docs/DEPLOY_GCP.md](../docs/DEPLOY_GCP.md)
+
+## API
 
 | Method | Path | Notes |
 |--------|------|--------|
-| `POST` | `/api/v1/investigate` | Kicks orchestrator (returns 202 stub) |
-| `GET`  | `/api/v1/incidents` | List incidents (empty) |
-| `GET`  | `/api/v1/incidents/{id}` | Fetch incident (501 until implemented) |
-
-## Next steps (TODO)
-
-1. Populate `mock_data/` with a realistic payments incident scenario.
-2. Implement tool JSON loaders.
-3. Implement agent `run()` methods + prompts.
-4. Wire `IncidentOrchestrator` (sequential first; LangGraph optional).
-5. Implement `GeminiLLMClient` against the Google Gemini API.
+| `GET` | `/health` | Liveness |
+| `POST` | `/api/v1/detect` | DetectionAgent |
+| `POST` | `/api/v1/report` | Full orchestration report |
+| `POST` | `/api/v1/investigate` | Alias for `/report` |

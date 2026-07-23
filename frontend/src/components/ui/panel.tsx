@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 export function Panel({
   className,
   children,
-  glow = 'blue',
+  glow = 'none',
   ...props
 }: HTMLAttributes<HTMLDivElement> & {
   children: ReactNode
@@ -20,15 +20,8 @@ export function Panel({
           : ''
 
   return (
-    <div
-      className={cn(
-        'relative overflow-hidden rounded-xl border border-line bg-panel/80 backdrop-blur-md',
-        glowClass,
-        className,
-      )}
-      {...props}
-    >
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-signal/50 to-transparent" />
+    <div className={cn('glass relative overflow-hidden rounded-2xl', glowClass, className)} {...props}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-signal/40 to-transparent" />
       {children}
     </div>
   )
