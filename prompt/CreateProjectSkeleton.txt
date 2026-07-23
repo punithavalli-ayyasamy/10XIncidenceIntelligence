@@ -1,0 +1,70 @@
+You are an expert Staff Software Engineer and AI Architect.
+
+Create a clean backend project for a hackathon called:
+
+10X Incident Intelligence
+
+Objective:
+Build an autonomous AI incident investigation platform that automatically detects anomalies from metrics, creates incidents, investigates root cause, predicts business impact, and recommends remediation.
+
+Technology:
+
+- Python 3.12
+- FastAPI
+- Pydantic
+- Uvicorn
+- LangGraph (optional placeholder)
+- Google Gemini API (abstract interface)
+- Modular architecture
+- JSON-based mock data
+- No database
+
+Project structure should be:
+
+backend/
+│
+├── app/
+│   ├── agents/
+│   │      detection_agent.py
+│   │      investigation_agent.py
+│   │      dependency_agent.py
+│   │      impact_agent.py
+│   │      prediction_agent.py
+│   │      recommendation_agent.py
+│   │
+│   ├── tools/
+│   │      metrics_tool.py
+│   │      logs_tool.py
+│   │      topology_tool.py
+│   │      deployment_tool.py
+│   │      traffic_tool.py
+│   │
+│   ├── services/
+│   │      orchestrator.py
+│   │
+│   ├── api/
+│   │      investigate.py
+│   │
+│   ├── models/
+│   │      incident.py
+│   │      metric.py
+│   │
+│   ├── prompts/
+│   │      detection_prompt.txt
+│   │      investigation_prompt.txt
+│   │      prediction_prompt.txt
+│   │
+│   ├── mock_data/
+│   │      payment_metrics.json
+│   │      payment_logs.json
+│   │      topology.json
+│   │      deployments.json
+│   │
+│   └── main.py
+│
+├── requirements.txt
+└── README.md
+
+Do NOT implement business logic yet.
+
+Only create folders, placeholder classes, interfaces, TODO comments, and API skeletons.

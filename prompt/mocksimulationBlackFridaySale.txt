@@ -1,0 +1,97 @@
+Create realistic mock data for an e-commerce platform preparing for Black Friday.
+
+Architecture:
+
+Frontend
+↓
+
+API Gateway
+↓
+
+Checkout Service
+
+↓
+
+Payment Service
+
+↓
+
+Order Service
+
+↓
+
+Inventory Service
+
+↓
+
+Notification Service
+
+↓
+
+Postgres Database
+
+↓
+
+Redis Cache
+
+↓
+
+Kafka
+
+Generate JSON files representing metrics collected every minute.
+
+Normal traffic:
+
+Requests/sec = 900-1500
+
+Latency = 100-250ms
+
+CPU = 35-60%
+
+Error Rate < 0.5%
+
+During Black Friday:
+
+Traffic gradually increases
+
+Payment service CPU increases
+
+Database connection pool begins exhausting
+
+Latency slowly increases
+
+Error rate starts increasing
+
+Eventually payment service degrades.
+
+Generate:
+
+payment_metrics.json
+
+Include around 60 timeline entries covering one hour before failure.
+
+Fields:
+
+timestamp
+
+requests_per_sec
+
+cpu
+
+memory
+
+latency_ms
+
+error_rate
+
+db_connections_used
+
+db_connection_limit
+
+thread_pool_usage
+
+success_rate
+
+traffic_multiplier
+
+The data should clearly show an upcoming incident rather than an immediate outage.

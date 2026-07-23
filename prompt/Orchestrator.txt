@@ -1,0 +1,31 @@
+Implement DetectionAgent.
+
+Input:
+
+payment_metrics.json
+
+Goal:
+
+Act as a senior Site Reliability Engineer.
+
+Analyze metrics.
+
+Determine if an incident should be created.
+
+Return structured JSON:
+
+{
+  "incident_created": true,
+  "severity": "...",
+  "confidence": ...,
+  "reason": "...",
+  "summary": "...",
+  "affected_service": "...",
+  "next_agent": "InvestigationAgent"
+}
+
+Do NOT use hardcoded thresholds.
+
+Use reasoning based on multiple metrics together.
+
+Leave Gemini integration behind an interface called LLMService.

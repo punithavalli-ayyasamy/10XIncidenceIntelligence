@@ -1,0 +1,30 @@
+
+Generate realistic production logs for payment-service.
+
+Include:
+
+INFO
+
+WARN
+
+ERROR
+
+Connection pool warnings
+
+Timeouts
+
+Slow SQL queries
+
+Retry failures
+
+Circuit breaker warnings
+
+Kafka publish failures
+
+Database connection exhaustion
+
+Generate approximately 150 log lines in chronological order.
+
+The logs should tell the story of a system slowly degrading before Black Friday traffic overwhelms the service.
+
+Store as payment_logs.json.
