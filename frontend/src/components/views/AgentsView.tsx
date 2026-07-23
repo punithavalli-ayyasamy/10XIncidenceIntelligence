@@ -16,14 +16,20 @@ const icons = {
 export function AgentsView() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 p-3 md:p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="max-w-2xl">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-signal">
-            Autonomous Agent Mesh
+            AI Agents
           </p>
-          <h2 className="font-display text-xl text-ink">Five agents. One mission.</h2>
+          <h2 className="font-display text-xl text-ink">
+            Five specialists working this incident
+          </h2>
+          <p className="mt-1 text-sm text-ink-dim">
+            Think of them like a response team: one spots the problem, one finds the cause,
+            one maps the damage, one predicts what happens next, and one proposes the fix.
+          </p>
         </div>
-        <Badge tone="ok">Pipeline armed</Badge>
+        <Badge tone="ok">Pipeline ready</Badge>
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
@@ -48,14 +54,12 @@ export function AgentsView() {
                   <Badge tone={agent.status === 'armed' ? 'alert' : 'ok'}>{agent.status}</Badge>
                 </div>
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-muted">
-                    {agent.role}
-                  </p>
                   <h3 className="font-display text-lg text-ink">{agent.name}</h3>
+                  <p className="mt-1 text-sm font-medium text-signal">{agent.plainJob}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-lg bg-void/40 px-2 py-1.5">
-                    <p className="font-mono text-[9px] text-muted">Exec time</p>
+                    <p className="font-mono text-[9px] text-muted">Took</p>
                     <p className="font-display text-sm text-signal">{agent.executionTime}</p>
                   </div>
                   <div className="rounded-lg bg-void/40 px-2 py-1.5">
@@ -63,7 +67,7 @@ export function AgentsView() {
                     <p className="font-display text-sm text-alert">{agent.confidence}%</p>
                   </div>
                 </div>
-                <ConfidenceMeter value={agent.confidence} label="Agent confidence" scale={100} />
+                <ConfidenceMeter value={agent.confidence} label="How sure is this agent" scale={100} />
                 <p className="mt-auto text-xs leading-relaxed text-ink-dim">{agent.summary}</p>
               </Panel>
             </motion.div>

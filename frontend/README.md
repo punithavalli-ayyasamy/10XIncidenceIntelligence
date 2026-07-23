@@ -17,7 +17,7 @@ Open http://localhost:5173
 1. **Dashboard** — 30-second incident brief  
 2. **Investigation** — SRE RCA workspace  
 3. **Service Graph** — React Flow + service side panel  
-4. **AI Agents** — Sentinel · Investigator · Navigator · Oracle · Healer  
+4. **AI Agents** — Detection · Detective · Impact · Prediction · Healing  
 5. **Self-Healing** — executable remediations with rollback  
 6. **Executive Report** — CTO brief  
 

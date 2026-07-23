@@ -38,7 +38,7 @@ export const mockReport = {
   revenueAtRiskTotal: '~$340k in 8 min window',
 
   executiveSummary:
-    'During Black Friday ramp, payment-service saturated its Postgres connection pool (100/100). Sentinel detected multi-metric degradation, Investigator traced HikariCP exhaustion under 5.4× traffic, Oracle predicted checkout collapse within 10 minutes, and Healer stands ready with service-specific remediations—10× faster than historical human MTTR.',
+    'During Black Friday ramp, payment-service saturated its Postgres connection pool (100/100). The Detection Agent spotted multi-metric degradation, the Detective Agent traced HikariCP exhaustion under 5.4× traffic, the Prediction Agent forecast checkout collapse within 10 minutes, and the Healing Agent stands ready with service-specific fixes—10× faster than historical human MTTR.',
 
   detection: {
     incident_created: true,
@@ -82,12 +82,12 @@ export const mockReport = {
     { t: '13:13', kind: 'metric', title: 'BF traffic ramp begins', detail: 'Traffic multiplier climbing past 1.5×' },
     { t: '13:28', kind: 'log', title: 'Pool nearing capacity', detail: 'WARN HikariCP active=71 pending_threads=9' },
     { t: '13:41', kind: 'metric', title: 'Pool pressure window', detail: 'DB connections 86+ · latency >500ms' },
-    { t: '13:53', kind: 'detect', title: 'Sentinel opens INC-BF-10', detail: 'Critical incident · confidence 92%' },
+    { t: '13:53', kind: 'detect', title: 'Detection Agent opens INC-BF-10', detail: 'Critical incident · confidence 92%' },
     { t: '13:54', kind: 'log', title: 'Circuit breaker OPEN', detail: 'payment-psp short_circuits=226' },
     { t: '13:54', kind: 'log', title: 'Authorize timeouts', detail: 'ERROR 504 /v1/payments/confirm latency>9s' },
     { t: '13:59', kind: 'metric', title: 'Pool exhausted', detail: 'db_connections_used=100/100' },
-    { t: '14:00', kind: 'rca', title: 'Investigator RCA locked', detail: 'HikariCP exhaustion · confidence 95%' },
-    { t: '14:01', kind: 'predict', title: 'Oracle forecast', detail: 'Checkout collapse <10 minutes if unrecovered' },
+    { t: '14:00', kind: 'rca', title: 'Detective Agent locks root cause', detail: 'HikariCP exhaustion · confidence 95%' },
+    { t: '14:01', kind: 'predict', title: 'Prediction Agent forecast', detail: 'Checkout collapse <10 minutes if unrecovered' },
   ],
 
   metricCorrelation: [
@@ -151,16 +151,16 @@ export const mockReport = {
   ],
 
   investigationSteps: [
-    { step: 1, agent: 'Sentinel', title: 'Ingest metrics', status: 'done' as const },
-    { step: 2, agent: 'Sentinel', title: 'Correlate anomalies', status: 'done' as const },
-    { step: 3, agent: 'Sentinel', title: 'Create INC-BF-10', status: 'done' as const },
-    { step: 4, agent: 'Investigator', title: 'Gather evidence pack', status: 'done' as const },
-    { step: 5, agent: 'Investigator', title: 'Lock root cause', status: 'done' as const },
-    { step: 6, agent: 'Navigator', title: 'Map blast radius', status: 'done' as const },
-    { step: 7, agent: 'Oracle', title: 'Score business impact', status: 'done' as const },
-    { step: 8, agent: 'Oracle', title: 'Predict outage window', status: 'done' as const },
-    { step: 9, agent: 'Healer', title: 'Rank remediations', status: 'done' as const },
-    { step: 10, agent: 'Healer', title: 'Arm self-heal playbook', status: 'ready' as const },
+    { step: 1, agent: 'Detection', title: 'Ingest metrics', status: 'done' as const },
+    { step: 2, agent: 'Detection', title: 'Correlate anomalies', status: 'done' as const },
+    { step: 3, agent: 'Detection', title: 'Create INC-BF-10', status: 'done' as const },
+    { step: 4, agent: 'Detective', title: 'Gather evidence pack', status: 'done' as const },
+    { step: 5, agent: 'Detective', title: 'Lock root cause', status: 'done' as const },
+    { step: 6, agent: 'Impact', title: 'Map blast radius', status: 'done' as const },
+    { step: 7, agent: 'Impact', title: 'Score business impact', status: 'done' as const },
+    { step: 8, agent: 'Prediction', title: 'Predict outage window', status: 'done' as const },
+    { step: 9, agent: 'Healing', title: 'Rank remediations', status: 'done' as const },
+    { step: 10, agent: 'Healing', title: 'Arm self-heal playbook', status: 'ready' as const },
   ],
 
   criticalServices: [
@@ -402,57 +402,62 @@ export const mockReport = {
   missionAgents: [
     {
       id: 'sentinel',
-      name: 'Sentinel',
-      role: 'Detection',
+      name: 'Detection Agent',
+      plainJob: 'Spots when something breaks',
       status: 'complete' as const,
       executionTime: '8.2s',
       confidence: 92,
-      summary: 'Detected correlated RPS/latency/error/DB rise and opened INC-BF-10 as critical.',
+      summary:
+        'Noticed traffic, latency, errors, and DB usage rising together — and opened this critical incident.',
     },
     {
       id: 'investigator',
-      name: 'Investigator',
-      role: 'RCA',
+      name: 'Detective Agent',
+      plainJob: 'Finds the root cause',
       status: 'complete' as const,
       executionTime: '32.4s',
       confidence: 95,
-      summary: 'Cited metrics + logs + deploys; root cause = HikariCP pool exhaustion under BF load.',
+      summary:
+        'Followed metrics, logs, and deploys like clues. Root cause: connection pool ran out under Black Friday load.',
     },
     {
       id: 'navigator',
-      name: 'Navigator',
-      role: 'Topology',
+      name: 'Impact Agent',
+      plainJob: 'Shows what else is hurt',
       status: 'complete' as const,
       executionTime: '11.0s',
       confidence: 90,
-      summary: 'Mapped 10-service blast radius; checkout and order marked downstream-critical.',
+      summary:
+        'Mapped the blast radius across 10 services. Checkout and order are the most at risk downstream.',
     },
     {
       id: 'oracle',
-      name: 'Oracle',
-      role: 'Impact & Prediction',
+      name: 'Prediction Agent',
+      plainJob: 'Forecasts what happens next',
       status: 'complete' as const,
       executionTime: '14.6s',
       confidence: 89,
-      summary: 'Projected $42.7k/min risk and checkout collapse inside an 8–10 minute window.',
+      summary:
+        'Estimates ~$42.7k/min at risk and checkout may fully collapse in about 8–10 minutes if unrecovered.',
     },
     {
       id: 'healer',
-      name: 'Healer',
-      role: 'Remediation',
+      name: 'Healing Agent',
+      plainJob: 'Proposes how to fix it',
       status: 'armed' as const,
       executionTime: '9.1s',
       confidence: 94,
-      summary: 'Ranked 6 service-specific actions with rollback + verification gates. Awaiting execute.',
+      summary:
+        'Ranked 6 safe fix actions with rollback checks. Ready to run when you hit execute on Self-Healing.',
     },
   ],
 
   liveFeed: [
     { t: '14:00:12', level: 'critical', msg: 'INC-BF-10 opened — payment pool exhausted' },
-    { t: '14:00:18', level: 'warn', msg: 'Sentinel confidence 92% — multi-metric correlation' },
-    { t: '14:00:41', level: 'info', msg: 'Investigator RCA: HikariCP exhaustion' },
-    { t: '14:01:02', level: 'warn', msg: 'Oracle: checkout collapse in <10 minutes' },
-    { t: '14:01:40', level: 'info', msg: 'Healer published P0 remediations' },
+    { t: '14:00:18', level: 'warn', msg: 'Detection Agent confidence 92% — multi-metric correlation' },
+    { t: '14:00:41', level: 'info', msg: 'Detective Agent root cause: HikariCP exhaustion' },
+    { t: '14:01:02', level: 'warn', msg: 'Prediction Agent: checkout collapse in <10 minutes' },
+    { t: '14:01:40', level: 'info', msg: 'Healing Agent published P0 remediations' },
     { t: '14:02:10', level: 'info', msg: 'Self-heal playbook armed — awaiting execute' },
   ],
 } as const

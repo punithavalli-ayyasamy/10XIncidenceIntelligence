@@ -56,7 +56,7 @@ export function DashboardView() {
           <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-signal">
             10-Step Autonomous Investigation
           </p>
-          <Badge tone="ok">9/10 complete · Healer armed</Badge>
+          <Badge tone="ok">9/10 complete · Healing Agent armed</Badge>
         </div>
         <div className="grid grid-cols-5 gap-1.5 lg:grid-cols-10">
           {mockReport.investigationSteps.map((step, i) => (

@@ -34,7 +34,7 @@ export function SelfHealingView() {
           <p className="font-mono text-[10px] uppercase tracking-widest text-alert">
             Guided Execution Workflow
           </p>
-          <Badge tone="alert">Healer armed</Badge>
+          <Badge tone="alert">Healing Agent armed</Badge>
         </div>
         <ul className="min-h-0 space-y-2 overflow-auto pr-1">
           {mockReport.recommendations.map((rec) => {

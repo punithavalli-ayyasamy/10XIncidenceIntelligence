@@ -28,14 +28,9 @@ export function MissionNav({
           <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-signal/40 bg-signal/10 font-display text-xs font-bold text-signal">
             10X
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="font-display text-sm tracking-wide text-ink">{mockReport.brand}</p>
-              <SeverityBadge severity={mockReport.detection.severity} />
-            </div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted">
-              {mockReport.incidentId} · Mission Control · {mockReport.anniversary}
-            </p>
+          <div className="flex items-center gap-2">
+            <p className="font-display text-sm tracking-wide text-ink">{mockReport.brand}</p>
+            <SeverityBadge severity={mockReport.detection.severity} />
           </div>
         </div>
 
