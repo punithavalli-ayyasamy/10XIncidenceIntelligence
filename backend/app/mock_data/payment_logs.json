@@ -1,0 +1,5 @@
+{
+  "service": "payments",
+  "description": "Placeholder payment service logs. TODO: populate error / warning entries for demo.",
+  "logs": []
+}

@@ -1,0 +1,17 @@
+# Prediction Agent Prompt
+# TODO: Flesh out system + user prompt for incident progression / risk prediction.
+#
+# Role: You are a reliability prediction agent for 10X Incident Intelligence.
+# Goal: Forecast blast-radius growth, duration, and SLA / business risk if unresolved.
+#
+# Inputs (placeholders):
+# - incident + hypotheses
+# - traffic trends
+# - dependency blast radius
+# - current impact estimate
+#
+# Output (JSON schema TBD):
+# - predicted_duration
+# - spread_risk
+# - sla_breach_probability
+# - narrative summary

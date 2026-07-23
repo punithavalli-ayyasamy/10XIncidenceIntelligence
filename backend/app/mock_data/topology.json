@@ -1,0 +1,12 @@
+{
+  "description": "Placeholder service topology. TODO: add real nodes and edges for blast-radius demo.",
+  "nodes": [
+    {"id": "payments", "type": "service"},
+    {"id": "checkout", "type": "service"},
+    {"id": "ledger", "type": "service"}
+  ],
+  "edges": [
+    {"from": "checkout", "to": "payments"},
+    {"from": "payments", "to": "ledger"}
+  ]
+}

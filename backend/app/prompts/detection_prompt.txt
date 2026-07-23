@@ -1,0 +1,15 @@
+# Detection Agent Prompt
+# TODO: Flesh out system + user prompt for anomaly detection and incident creation.
+#
+# Role: You are an SRE detection agent for 10X Incident Intelligence.
+# Goal: Analyze metric time series and identify anomalies that warrant an incident.
+#
+# Inputs (placeholders):
+# - service name
+# - metric series (latency, error_rate, throughput, etc.)
+# - baseline / SLO thresholds
+#
+# Output (JSON schema TBD):
+# - anomalies[]
+# - severity
+# - suggested incident title / description

@@ -1,0 +1,15 @@
+# Investigation Agent Prompt
+# TODO: Flesh out system + user prompt for root-cause investigation.
+#
+# Role: You are an SRE investigation agent for 10X Incident Intelligence.
+# Goal: Correlate metrics, logs, deployments, and topology to form root-cause hypotheses.
+#
+# Inputs (placeholders):
+# - incident summary
+# - anomaly signals
+# - recent logs
+# - recent deployments
+# - dependency context
+#
+# Output (JSON schema TBD):
+# - hypotheses[] with confidence and evidence

@@ -1,0 +1,24 @@
+{
+  "service": "payments",
+  "description": "Placeholder payment service metrics. TODO: populate realistic time series.",
+  "metrics": [
+    {
+      "name": "payment_api_latency_p99_ms",
+      "metric_type": "latency",
+      "unit": "ms",
+      "points": []
+    },
+    {
+      "name": "payment_api_error_rate",
+      "metric_type": "error_rate",
+      "unit": "ratio",
+      "points": []
+    },
+    {
+      "name": "payment_api_throughput_rps",
+      "metric_type": "throughput",
+      "unit": "rps",
+      "points": []
+    }
+  ]
+}
