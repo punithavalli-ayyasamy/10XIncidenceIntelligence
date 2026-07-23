@@ -108,16 +108,46 @@ gcloud builds submit --config=cloudbuild.yaml .
 
 Prefer the GitHub trigger so deploys always come from a pushed commit.
 
+## Frontend (Mission Control UI)
+
+SPA is served by nginx on Cloud Run (`tenx-incident-ui`). Uses mock data unless you bake in an API URL.
+
+### Deploy from Cloud Shell (after push)
+
+```bash
+gcloud builds submit --config=cloudbuild.frontend.yaml .
+
+# Optional: point UI at the API at build time
+gcloud builds submit --config=cloudbuild.frontend.yaml . \
+  --substitutions=_VITE_API_BASE_URL=https://tenx-incident-api-XXXX.a.run.app
+```
+
+Or source deploy from the `frontend/` folder:
+
+```bash
+cd frontend
+gcloud run deploy tenx-incident-ui \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --port 8080
+```
+
 ## Files involved
 
 | File | Purpose |
 |------|---------|
 | `backend/Dockerfile` | Container image for FastAPI / Uvicorn |
 | `backend/.dockerignore` | Keep image small / exclude `.env` |
-| `cloudbuild.yaml` | Build → push → Cloud Run deploy |
+| `cloudbuild.yaml` | Backend: build → push → Cloud Run |
+| `frontend/Dockerfile` | Multi-stage Vite build + nginx |
+| `frontend/nginx.conf` | Listen on 8080, SPA fallback |
+| `frontend/.dockerignore` | Exclude `node_modules` / `dist` |
+| `cloudbuild.frontend.yaml` | Frontend: build → push → Cloud Run |
 
 ## Notes
 
 - `.env` is **not** copied into the image (gitignored + dockerignored). Use Secret Manager.
 - If `gemini-api-key` is missing, the service still deploys with `ALLOW_HEURISTIC_LLM_FALLBACK=true`.
 - For a private API, set trigger substitution `_ALLOW_UNAUTH=false`.
+- Frontend listens on **8080** (Cloud Run). UI works offline with mock data until `VITE_API_BASE_URL` is set.
