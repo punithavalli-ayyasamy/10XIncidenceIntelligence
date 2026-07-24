@@ -23,6 +23,17 @@ VITE_API_BASE_URL=http://localhost:8000
 ```
 (Leave empty to use the Vite proxy.)
 
+## Deploy UI to Cloud Run
+
+From **`frontend/`**:
+
+```bash
+gcloud builds submit --config=cloudbuild.frontend.yaml . \
+  --substitutions=_TAG=manual1,_VITE_API_BASE_URL=https://tenx-incidentagent-api-XXXX.a.run.app
+```
+
+This builds with Docker `--build-arg VITE_API_BASE_URL=…`, pushes to Artifact Registry, and deploys `tenx-incidentagent-ui`.
+
 ## Tabs
 
 1. **Dashboard** — 30-second incident brief  
