@@ -8,7 +8,7 @@ import {
   YAxis,
 } from 'recharts'
 import metricsSample from '@/data/metrics_sample.json'
-import { mockReport } from '@/data/mockReport'
+import { useReport } from '@/report/ReportContext'
 import { ConfidenceMeter } from '@/components/shared/ConfidenceMeter'
 import { Badge } from '@/components/ui/badge'
 import { Panel } from '@/components/ui/panel'
@@ -22,6 +22,8 @@ const chartData = metricsSample.timeline.map((row) => ({
 }))
 
 export function InvestigationView() {
+  const { report } = useReport()
+
   return (
     <div className="grid h-full min-h-0 grid-cols-12 gap-3 p-3 md:p-4">
       {/* Evidence timeline */}
@@ -30,7 +32,7 @@ export function InvestigationView() {
           Evidence Timeline
         </p>
         <ul className="min-h-0 space-y-2 overflow-auto pr-1">
-          {mockReport.evidenceTimeline.map((ev) => (
+          {report.evidenceTimeline.map((ev) => (
             <li key={`${ev.t}-${ev.title}`} className="relative border-l border-signal/30 pl-3">
               <p className="font-mono text-[10px] text-alert">
                 {ev.t} · {ev.kind}
@@ -49,7 +51,7 @@ export function InvestigationView() {
             Metric Correlation
           </p>
           <div className="mb-2 grid grid-cols-3 gap-1.5 sm:grid-cols-6">
-            {mockReport.metricCorrelation.map((m) => (
+            {report.metricCorrelation.map((m) => (
               <div key={m.label} className="rounded-lg bg-void/40 px-1.5 py-1 text-center">
                 <p className="font-mono text-[9px] text-muted">{m.label}</p>
                 <p className="font-display text-[11px] text-ink-dim">
@@ -96,7 +98,7 @@ export function InvestigationView() {
             Relevant Logs
           </p>
           <ul className="min-h-0 space-y-1.5 overflow-auto font-mono text-[11px]">
-            {mockReport.relevantLogs.map((log) => (
+            {report.relevantLogs.map((log) => (
               <li key={`${log.t}-${log.msg}`} className="rounded-lg bg-void/45 px-2 py-1.5">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge tone={log.level === 'ERROR' ? 'critical' : 'alert'}>{log.level}</Badge>
@@ -115,10 +117,10 @@ export function InvestigationView() {
       <Panel className="col-span-12 flex min-h-0 flex-col gap-3 p-3 lg:col-span-4" glow="red">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-critical">Root Cause</p>
-          <p className="mt-2 text-sm leading-relaxed text-ink">{mockReport.investigation.root_cause}</p>
+          <p className="mt-2 text-sm leading-relaxed text-ink">{report.investigation.root_cause}</p>
         </div>
         <ConfidenceMeter
-          value={mockReport.investigation.confidence}
+          value={report.investigation.confidence}
           label="Investigation Confidence"
           scale={100}
         />
@@ -127,7 +129,7 @@ export function InvestigationView() {
             Supporting Evidence
           </p>
           <ul className="space-y-1.5">
-            {mockReport.investigation.supporting_evidence.map((ev) => (
+            {report.investigation.supporting_evidence.map((ev) => (
               <li
                 key={ev}
                 className="rounded-lg border border-line/50 bg-void/40 px-2.5 py-1.5 text-xs text-ink-dim"

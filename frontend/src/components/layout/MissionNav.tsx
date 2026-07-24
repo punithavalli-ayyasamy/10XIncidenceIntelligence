@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion'
 import { Activity } from 'lucide-react'
 import type { TabId } from '@/data/mockReport'
-import { mockReport } from '@/data/mockReport'
+import { useReport } from '@/report/ReportContext'
 import { SeverityBadge } from '@/components/shared/SeverityBadge'
+import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 const tabs: { id: TabId; label: string }[] = [
@@ -21,6 +22,8 @@ export function MissionNav({
   active: TabId
   onChange: (id: TabId) => void
 }) {
+  const { report, source, healed } = useReport()
+
   return (
     <header className="shrink-0 border-b border-line/70 bg-void/70 px-4 py-2.5 backdrop-blur-xl md:px-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -29,8 +32,12 @@ export function MissionNav({
             10X
           </div>
           <div className="flex items-center gap-2">
-            <p className="font-display text-sm tracking-wide text-ink">{mockReport.brand}</p>
-            <SeverityBadge severity={mockReport.detection.severity} />
+            <p className="font-display text-sm tracking-wide text-ink">{report.brand}</p>
+            {healed ? (
+              <Badge tone="ok">RESOLVED</Badge>
+            ) : (
+              <SeverityBadge severity={report.detection.severity} />
+            )}
           </div>
         </div>
 
@@ -62,7 +69,8 @@ export function MissionNav({
 
         <div className="hidden items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-ok xl:flex">
           <Activity className="h-3.5 w-3.5" />
-          Live · AI MTTR {mockReport.mttrMinutesAi}m · {mockReport.speedup}×
+          {source === 'api' ? 'API' : 'Mock'} ·{' '}
+          {healed ? 'Recovered' : 'Live'} · AI MTTR {report.mttrMinutesAi}m · {report.speedup}×
         </div>
       </div>
     </header>

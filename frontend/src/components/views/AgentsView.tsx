@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { Bot, Radar, Search, Compass, Eye, Crosshair } from 'lucide-react'
-import { mockReport } from '@/data/mockReport'
+import { useReport } from '@/report/ReportContext'
 import { ConfidenceMeter } from '@/components/shared/ConfidenceMeter'
 import { Badge } from '@/components/ui/badge'
 import { Panel } from '@/components/ui/panel'
@@ -14,6 +14,8 @@ const icons = {
 } as const
 
 export function AgentsView() {
+  const { report } = useReport()
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-3 p-3 md:p-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -33,7 +35,7 @@ export function AgentsView() {
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-        {mockReport.missionAgents.map((agent, i) => {
+        {report.missionAgents.map((agent, i) => {
           const Icon = icons[agent.id as keyof typeof icons] ?? Bot
           return (
             <motion.div

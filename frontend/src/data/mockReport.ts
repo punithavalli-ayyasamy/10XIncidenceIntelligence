@@ -460,7 +460,9 @@ export const mockReport = {
     { t: '14:01:40', level: 'info', msg: 'Healing Agent published P0 remediations' },
     { t: '14:02:10', level: 'info', msg: 'Self-heal playbook armed — awaiting execute' },
   ],
-} as const
+}
 
-export type MockReport = typeof mockReport
-export type CriticalService = (typeof mockReport.criticalServices)[number]
+/** Mission Control report (mock baseline or API-merged). */
+export type ReportData = typeof mockReport
+export type MockReport = ReportData
+export type CriticalService = ReportData['criticalServices'][number]

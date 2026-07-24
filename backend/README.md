@@ -33,6 +33,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - Docs: `/docs`
 - Report: `POST /api/v1/report`
 
+CORS is open (`*`) so the Vite UI on `:5173` can call the API.
+
 ## Deploy to GCP from GitHub
 
 Do **not** deploy from local disk. Push to GitHub; Cloud Build pulls the commit and deploys:

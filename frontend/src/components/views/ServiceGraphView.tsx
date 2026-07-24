@@ -8,7 +8,8 @@ import {
   type Node,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { mockReport, type CriticalService } from '@/data/mockReport'
+import { type CriticalService } from '@/data/mockReport'
+import { useReport } from '@/report/ReportContext'
 import { Badge } from '@/components/ui/badge'
 import { Panel } from '@/components/ui/panel'
 
@@ -26,8 +27,12 @@ const positions: Record<string, { x: number; y: number }> = {
   kafka: { x: 800, y: 240 },
 }
 
-function styleFor(id: string, selected: boolean) {
-  const svc = mockReport.criticalServices.find((s) => s.id === id)
+function styleFor(
+  id: string,
+  selected: boolean,
+  services: CriticalService[],
+) {
+  const svc = services.find((s) => s.id === id)
   const highlight = id === 'payment' || id === 'postgres'
   const border = selected
     ? '#3aa0ff'
@@ -49,13 +54,14 @@ function styleFor(id: string, selected: boolean) {
 }
 
 export function ServiceGraphView() {
+  const { report } = useReport()
   const [selectedId, setSelectedId] = useState<string>('payment')
 
-  const selected: CriticalService | undefined = mockReport.criticalServices.find(
+  const selected: CriticalService | undefined = report.criticalServices.find(
     (s) => s.id === selectedId,
   )
 
-  const recs = mockReport.recommendations.filter(
+  const recs = report.recommendations.filter(
     (r) =>
       r.targetService === selected?.name ||
       (selectedId === 'payment' && r.targetService === 'payment-service') ||
@@ -64,18 +70,18 @@ export function ServiceGraphView() {
 
   const nodes: Node[] = useMemo(
     () =>
-      mockReport.dependencyNodes.map((n) => ({
+      report.dependencyNodes.map((n) => ({
         id: n.id,
         position: positions[n.id] ?? { x: 0, y: 0 },
         data: { label: n.label },
-        style: styleFor(n.id, n.id === selectedId),
+        style: styleFor(n.id, n.id === selectedId, report.criticalServices),
       })),
-    [selectedId],
+    [selectedId, report.dependencyNodes, report.criticalServices],
   )
 
   const edges: Edge[] = useMemo(
     () =>
-      mockReport.dependencyEdges.map((e, i) => {
+      report.dependencyEdges.map((e, i) => {
         const source = String(e.source)
         const target = String(e.target)
         const hot = source === 'payment' || target === 'payment' || target === 'postgres'
@@ -88,7 +94,7 @@ export function ServiceGraphView() {
           markerEnd: { type: MarkerType.ArrowClosed, color: '#7f94b0' },
         }
       }),
-    [],
+    [report.dependencyEdges],
   )
 
   return (
@@ -160,7 +166,7 @@ export function ServiceGraphView() {
                 Recommendations
               </p>
               <ul className="space-y-1.5">
-                {(recs.length ? recs : mockReport.recommendations.slice(0, 2)).map((r) => (
+                {(recs.length ? recs : report.recommendations.slice(0, 2)).map((r) => (
                   <li key={r.id} className="rounded-lg border border-line/50 bg-void/35 px-2 py-1.5">
                     <Badge tone={r.priority === 'P0' ? 'critical' : 'alert'}>{r.priority}</Badge>
                     <p className="mt-1 text-xs text-ink">{r.recommendation}</p>

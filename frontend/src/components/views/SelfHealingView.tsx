@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Play, RotateCcw, ShieldCheck } from 'lucide-react'
-import { mockReport, type Recommendation } from '@/data/mockReport'
+import { type Recommendation } from '@/data/mockReport'
+import { useReport } from '@/report/ReportContext'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Panel } from '@/components/ui/panel'
@@ -9,22 +10,29 @@ import { Panel } from '@/components/ui/panel'
 type ExecStatus = 'pending' | 'running' | 'verified' | 'rolled_back'
 
 export function SelfHealingView() {
+  const { report, setHealed, healed } = useReport()
   const [status, setStatus] = useState<Record<string, ExecStatus>>(
-    Object.fromEntries(mockReport.recommendations.map((r) => [r.id, 'pending' as ExecStatus])),
+    Object.fromEntries(report.recommendations.map((r) => [r.id, 'pending' as ExecStatus])),
   )
-  const [activeId, setActiveId] = useState(mockReport.recommendations[0]?.id)
+  const [activeId, setActiveId] = useState(report.recommendations[0]?.id)
 
-  const active: Recommendation | undefined = mockReport.recommendations.find((r) => r.id === activeId)
+  const active: Recommendation | undefined = report.recommendations.find((r) => r.id === activeId)
 
   const runAction = (id: string) => {
     setStatus((s) => ({ ...s, [id]: 'running' }))
     window.setTimeout(() => {
       setStatus((s) => ({ ...s, [id]: 'verified' }))
+      setHealed(true)
     }, 1400)
   }
 
   const rollback = (id: string) => {
-    setStatus((s) => ({ ...s, [id]: 'rolled_back' }))
+    setStatus((s) => {
+      const next = { ...s, [id]: 'rolled_back' as const }
+      const stillHealed = Object.values(next).some((v) => v === 'verified')
+      setHealed(stillHealed)
+      return next
+    })
   }
 
   return (
@@ -34,10 +42,12 @@ export function SelfHealingView() {
           <p className="font-mono text-[10px] uppercase tracking-widest text-alert">
             Guided Execution Workflow
           </p>
-          <Badge tone="alert">Healing Agent armed</Badge>
+          <Badge tone={healed ? 'ok' : 'alert'}>
+            {healed ? 'Healing verified · dashboard green' : 'Healing Agent armed'}
+          </Badge>
         </div>
         <ul className="min-h-0 space-y-2 overflow-auto pr-1">
-          {mockReport.recommendations.map((rec) => {
+          {report.recommendations.map((rec) => {
             const st = status[rec.id]
             return (
               <li key={rec.id}>

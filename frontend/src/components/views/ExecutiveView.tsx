@@ -1,27 +1,29 @@
-import { mockReport } from '@/data/mockReport'
+import { useReport } from '@/report/ReportContext'
 import { AnimatedCounter } from '@/components/shared/AnimatedCounter'
 import { SeverityBadge } from '@/components/shared/SeverityBadge'
 import { Badge } from '@/components/ui/badge'
 import { Panel } from '@/components/ui/panel'
 
 export function ExecutiveView() {
+  const { report } = useReport()
+
   return (
     <div className="grid h-full min-h-0 grid-rows-[auto_1fr] gap-3 overflow-hidden p-3 md:p-4">
       <Panel className="p-4" glow="blue">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-signal">
-              CTO Executive Brief · {mockReport.incidentId}
+              CTO Executive Brief · {report.incidentId}
             </p>
             <h2 className="mt-1 font-display text-2xl text-ink">Black Friday Payment Incident</h2>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-ink-dim">
-              {mockReport.executiveSummary}
+              {report.executiveSummary}
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <SeverityBadge severity={mockReport.detection.severity} />
+            <SeverityBadge severity={report.detection.severity} />
             <p className="font-display text-3xl text-signal text-glow-blue">
-              <AnimatedCounter value={mockReport.speedup} />×
+              <AnimatedCounter value={report.speedup} />×
             </p>
             <p className="font-mono text-[10px] uppercase text-muted">Faster than human MTTR</p>
           </div>
@@ -34,7 +36,7 @@ export function ExecutiveView() {
             Business Impact
           </p>
           <ul className="mt-2 space-y-2">
-            {mockReport.businessImpactTop.map((item) => (
+            {report.businessImpactTop.map((item) => (
               <li
                 key={item.label}
                 className="flex items-center justify-between rounded-lg bg-void/40 px-3 py-2"
@@ -51,7 +53,7 @@ export function ExecutiveView() {
             ))}
             <li className="rounded-lg border border-critical/30 bg-critical/10 px-3 py-2">
               <p className="font-mono text-[9px] uppercase text-critical">Revenue risk window</p>
-              <p className="font-display text-xl text-ink">{mockReport.revenueAtRiskTotal}</p>
+              <p className="font-display text-xl text-ink">{report.revenueAtRiskTotal}</p>
             </li>
           </ul>
 
@@ -59,7 +61,7 @@ export function ExecutiveView() {
             Root Cause
           </p>
           <p className="mt-1 text-xs leading-relaxed text-ink-dim">
-            {mockReport.investigation.root_cause}
+            {report.investigation.root_cause}
           </p>
 
           <p className="mt-4 font-mono text-[10px] uppercase tracking-widest text-signal">
@@ -68,7 +70,7 @@ export function ExecutiveView() {
           <p className="mt-1 text-xs text-ink-dim">
             Checkout collapse forecast inside{' '}
             <span className="font-semibold text-alert">
-              &lt;{mockReport.predictionMinutesRemaining} minutes
+              &lt;{report.predictionMinutesRemaining} minutes
             </span>{' '}
             if unrecovered.
           </p>
@@ -79,7 +81,7 @@ export function ExecutiveView() {
             10 Key Insights
           </p>
           <ul className="mt-2 min-h-0 space-y-1.5 overflow-auto">
-            {mockReport.insights.map((insight) => (
+            {report.insights.map((insight) => (
               <li key={insight.id} className="rounded-lg bg-void/35 px-2.5 py-1.5">
                 <p className="text-xs font-semibold text-ink">
                   <span className="mr-1 font-display text-alert">
@@ -98,7 +100,7 @@ export function ExecutiveView() {
             Affected Services
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {mockReport.investigation.affected_services.map((svc) => (
+            {report.investigation.affected_services.map((svc) => (
               <Badge key={svc} tone="muted">
                 {svc}
               </Badge>
@@ -109,7 +111,7 @@ export function ExecutiveView() {
             Recommended Actions
           </p>
           <ul className="mt-2 min-h-0 space-y-1.5 overflow-auto">
-            {mockReport.recommendations.map((rec) => (
+            {report.recommendations.map((rec) => (
               <li key={rec.id} className="rounded-lg bg-void/35 px-2.5 py-1.5">
                 <div className="flex items-center gap-2">
                   <Badge tone={rec.priority === 'P0' ? 'critical' : 'alert'}>{rec.priority}</Badge>

@@ -8,7 +8,7 @@ export function Panel({
   ...props
 }: HTMLAttributes<HTMLDivElement> & {
   children: ReactNode
-  glow?: 'blue' | 'orange' | 'red' | 'none'
+  glow?: 'blue' | 'orange' | 'red' | 'green' | 'none'
 }) {
   const glowClass =
     glow === 'blue'
@@ -17,7 +17,9 @@ export function Panel({
         ? 'shadow-[var(--shadow-glow-orange)]'
         : glow === 'red'
           ? 'shadow-[var(--shadow-glow-red)]'
-          : ''
+          : glow === 'green'
+            ? 'shadow-[0_0_40px_rgba(45,212,168,0.22)] ring-1 ring-ok/35'
+            : ''
 
   return (
     <div className={cn('glass relative overflow-hidden rounded-2xl', glowClass, className)} {...props}>
