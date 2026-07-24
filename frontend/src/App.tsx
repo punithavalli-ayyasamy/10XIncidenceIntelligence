@@ -40,10 +40,7 @@ function MissionApp() {
               : 'Demo data · API unreachable'}
           {error && !loading ? ` — ${error}` : ''}
         </p>
-        <Button size="sm" variant="outline" onClick={() => void refresh()} disabled={loading}>
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
-          Run report
-        </Button>
+        
       </div>
 
       <main className="mission-main relative z-10">
