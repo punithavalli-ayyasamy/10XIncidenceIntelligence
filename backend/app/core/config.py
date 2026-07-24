@@ -43,6 +43,33 @@ class Settings(BaseSettings):
         description="If true, use HeuristicLLMService when Gemini key is missing.",
     )
 
+    # Observability — Cloud Logging + Cloud Trace
+    service_name: str = Field(
+        default="tenx-incident-api",
+        description="Service name for Cloud Logging / Cloud Trace (SERVICE_NAME).",
+    )
+    service_version: str = Field(default="0.1.0", description="SERVICE_VERSION")
+    log_level: str = Field(default="INFO", description="LOG_LEVEL")
+    enable_cloud_logging: bool = Field(
+        default=False,
+        description="Force-enable google-cloud-logging client (ENABLE_CLOUD_LOGGING).",
+    )
+    enable_cloud_trace: bool = Field(
+        default=False,
+        description="Force-enable Cloud Trace exporter (ENABLE_CLOUD_TRACE).",
+    )
+    cloud_observability_auto: bool = Field(
+        default=True,
+        description=(
+            "When true, auto-enable Cloud Logging + Trace on Cloud Run "
+            "(K_SERVICE present). CLOUD_OBSERVABILITY_AUTO."
+        ),
+    )
+    trace_console_export: bool = Field(
+        default=False,
+        description="Export spans to console locally (TRACE_CONSOLE_EXPORT).",
+    )
+
     @property
     def resolved_gemini_api_key(self) -> str | None:
         """Return a real API key, ignoring empty / placeholder values from .env.example."""

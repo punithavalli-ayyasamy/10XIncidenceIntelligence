@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from app.core.config import get_settings
+from app.core.observability import span
 
 logger = logging.getLogger(__name__)
 
@@ -76,16 +77,18 @@ class GeminiLLMService(LLMService):
     async def generate(self, prompt: str, **kwargs: Any) -> str:
         # google-generativeai generate_content is sync; run as-is for hackathon simplicity.
         _ = kwargs
-        assert self._model is not None
-        response = self._model.generate_content(prompt)
-        text = getattr(response, "text", None)
-        if not text:
-            raise RuntimeError("Gemini returned an empty response")
-        return text
+        with span("llm.gemini.generate", model=self.model_name, prompt_chars=len(prompt)):
+            assert self._model is not None
+            response = self._model.generate_content(prompt)
+            text = getattr(response, "text", None)
+            if not text:
+                raise RuntimeError("Gemini returned an empty response")
+            return text
 
     async def generate_json(self, prompt: str, **kwargs: Any) -> dict[str, Any]:
-        text = await self.generate(prompt, **kwargs)
-        return _extract_json_object(text)
+        with span("llm.gemini.generate_json", model=self.model_name, prompt_chars=len(prompt)):
+            text = await self.generate(prompt, **kwargs)
+            return _extract_json_object(text)
 
 
 class HeuristicLLMService(LLMService):
@@ -97,17 +100,19 @@ class HeuristicLLMService(LLMService):
     """
 
     async def generate(self, prompt: str, **kwargs: Any) -> str:
-        result = await self.generate_json(prompt, **kwargs)
-        return json.dumps(result)
+        with span("llm.heuristic.generate", prompt_chars=len(prompt)):
+            result = await self.generate_json(prompt, **kwargs)
+            return json.dumps(result)
 
     async def generate_json(self, prompt: str, **kwargs: Any) -> dict[str, Any]:
-        _ = kwargs
-        # InvestigationAgent embeds EVIDENCE_PACK — synthesize RCA from that pack only.
-        if "EVIDENCE_PACK:" in prompt:
-            pack = _evidence_pack_from_prompt(prompt)
-            return _reason_over_evidence_pack(pack)
-        timeline = _timeline_from_prompt(prompt)
-        return _reason_over_timeline(timeline)
+        with span("llm.heuristic.generate_json", prompt_chars=len(prompt)):
+            _ = kwargs
+            # InvestigationAgent embeds EVIDENCE_PACK — synthesize RCA from that pack only.
+            if "EVIDENCE_PACK:" in prompt:
+                pack = _evidence_pack_from_prompt(prompt)
+                return _reason_over_evidence_pack(pack)
+            timeline = _timeline_from_prompt(prompt)
+            return _reason_over_timeline(timeline)
 
 
 class ResilientLLMService(LLMService):
@@ -127,36 +132,38 @@ class ResilientLLMService(LLMService):
         self.last_fallback_reason: str | None = None
 
     async def generate(self, prompt: str, **kwargs: Any) -> str:
-        try:
-            text = await self.primary.generate(prompt, **kwargs)
-            self.last_provider = type(self.primary).__name__
-            self.last_fallback_reason = None
-            return text
-        except Exception as exc:
-            self.last_provider = type(self.fallback).__name__
-            self.last_fallback_reason = f"{type(exc).__name__}: {exc}"
-            logger.warning(
-                "Primary LLM failed (%s); falling back to %s",
-                self.last_fallback_reason,
-                type(self.fallback).__name__,
-            )
-            return await self.fallback.generate(prompt, **kwargs)
+        with span("llm.resilient.generate", prompt_chars=len(prompt)):
+            try:
+                text = await self.primary.generate(prompt, **kwargs)
+                self.last_provider = type(self.primary).__name__
+                self.last_fallback_reason = None
+                return text
+            except Exception as exc:
+                self.last_provider = type(self.fallback).__name__
+                self.last_fallback_reason = f"{type(exc).__name__}: {exc}"
+                logger.warning(
+                    "Primary LLM failed (%s); falling back to %s",
+                    self.last_fallback_reason,
+                    type(self.fallback).__name__,
+                )
+                return await self.fallback.generate(prompt, **kwargs)
 
     async def generate_json(self, prompt: str, **kwargs: Any) -> dict[str, Any]:
-        try:
-            data = await self.primary.generate_json(prompt, **kwargs)
-            self.last_provider = type(self.primary).__name__
-            self.last_fallback_reason = None
-            return data
-        except Exception as exc:
-            self.last_provider = type(self.fallback).__name__
-            self.last_fallback_reason = f"{type(exc).__name__}: {exc}"
-            logger.warning(
-                "Primary LLM JSON failed (%s); falling back to %s",
-                self.last_fallback_reason,
-                type(self.fallback).__name__,
-            )
-            return await self.fallback.generate_json(prompt, **kwargs)
+        with span("llm.resilient.generate_json", prompt_chars=len(prompt)):
+            try:
+                data = await self.primary.generate_json(prompt, **kwargs)
+                self.last_provider = type(self.primary).__name__
+                self.last_fallback_reason = None
+                return data
+            except Exception as exc:
+                self.last_provider = type(self.fallback).__name__
+                self.last_fallback_reason = f"{type(exc).__name__}: {exc}"
+                logger.warning(
+                    "Primary LLM JSON failed (%s); falling back to %s",
+                    self.last_fallback_reason,
+                    type(self.fallback).__name__,
+                )
+                return await self.fallback.generate_json(prompt, **kwargs)
 
 
 def _timeline_from_prompt(prompt: str) -> list[dict[str, Any]]:

@@ -16,6 +16,7 @@ from app.tools.deployment_tool import DeploymentTool
 from app.tools.logs_tool import LogsTool
 from app.tools.metrics_tool import MetricsTool
 from app.tools.topology_tool import TopologyTool
+from app.core.observability import span
 
 _PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 
@@ -84,58 +85,59 @@ class InvestigationAgent(BaseAgent):
         incident: Incident | None = None,
     ) -> dict[str, Any]:
         """Load and compress real telemetry into a citation-friendly evidence pack."""
-        metrics = await self.metrics_tool.load_raw("payment_metrics.json")
-        timeline = metrics.get("timeline", [])
-        if not isinstance(timeline, list):
-            timeline = []
+        with span("investigation.gather_evidence", service=service or ""):
+            metrics = await self.metrics_tool.load_raw("payment_metrics.json")
+            timeline = metrics.get("timeline", [])
+            if not isinstance(timeline, list):
+                timeline = []
 
-        metric_highlights = self._metric_highlights(timeline)
-        log_highlights = await self.logs_tool.get_error_and_warn_highlights(limit=35)
-        # Compact log entries for the prompt (keep citation fields only)
-        compact_logs = [
-            {
-                "timestamp": e.get("timestamp"),
-                "level": e.get("level"),
-                "logger": e.get("logger"),
-                "message": e.get("message"),
-                "context": e.get("context"),
+            metric_highlights = self._metric_highlights(timeline)
+            log_highlights = await self.logs_tool.get_error_and_warn_highlights(limit=35)
+            # Compact log entries for the prompt (keep citation fields only)
+            compact_logs = [
+                {
+                    "timestamp": e.get("timestamp"),
+                    "level": e.get("level"),
+                    "logger": e.get("logger"),
+                    "message": e.get("message"),
+                    "context": e.get("context"),
+                }
+                for e in log_highlights
+                if isinstance(e, dict)
+            ]
+
+            affected = (
+                service
+                or (detection.affected_service if isinstance(detection, DetectionResult) else None)
+                or (detection.get("affected_service") if isinstance(detection, dict) else None)
+                or (incident.service if incident else None)
+                or str(metrics.get("service") or "payment-service")
+            )
+            topology = await self.topology_tool.get_dependencies(str(affected))
+            deployments = await self.deployment_tool.get_deployments(service=str(affected))
+
+            detection_payload: dict[str, Any] | None
+            if isinstance(detection, DetectionResult):
+                detection_payload = detection.model_dump()
+            elif isinstance(detection, dict):
+                detection_payload = detection
+            else:
+                detection_payload = None
+
+            return {
+                "detection": detection_payload,
+                "incident_id": incident.id if incident else None,
+                "primary_service": affected,
+                "metric_window": metrics.get("window"),
+                "metric_highlights": metric_highlights,
+                "log_highlights": compact_logs,
+                "topology": topology,
+                "recent_deployments": deployments,
+                "instructions": (
+                    "Cite only facts present in metric_highlights, log_highlights, "
+                    "topology, and recent_deployments."
+                ),
             }
-            for e in log_highlights
-            if isinstance(e, dict)
-        ]
-
-        affected = (
-            service
-            or (detection.affected_service if isinstance(detection, DetectionResult) else None)
-            or (detection.get("affected_service") if isinstance(detection, dict) else None)
-            or (incident.service if incident else None)
-            or str(metrics.get("service") or "payment-service")
-        )
-        topology = await self.topology_tool.get_dependencies(str(affected))
-        deployments = await self.deployment_tool.get_deployments(service=str(affected))
-
-        detection_payload: dict[str, Any] | None
-        if isinstance(detection, DetectionResult):
-            detection_payload = detection.model_dump()
-        elif isinstance(detection, dict):
-            detection_payload = detection
-        else:
-            detection_payload = None
-
-        return {
-            "detection": detection_payload,
-            "incident_id": incident.id if incident else None,
-            "primary_service": affected,
-            "metric_window": metrics.get("window"),
-            "metric_highlights": metric_highlights,
-            "log_highlights": compact_logs,
-            "topology": topology,
-            "recent_deployments": deployments,
-            "instructions": (
-                "Cite only facts present in metric_highlights, log_highlights, "
-                "topology, and recent_deployments."
-            ),
-        }
 
     def _metric_highlights(self, timeline: list[Any]) -> list[dict[str, Any]]:
         """Extract early/mid/late samples and extrema that can be cited verbatim."""
@@ -383,23 +385,24 @@ class InvestigationAgent(BaseAgent):
         evidence_pack: dict[str, Any] | None = None,
     ) -> InvestigationFinding:
         """Run RCA over gathered evidence via LLMService (with evidence-safe fallback)."""
-        pack = evidence_pack or await self.gather_evidence_pack(
-            detection=detection,
-            service=service,
-            incident=incident,
-        )
+        with span("investigation.analyze", service=service or ""):
+            pack = evidence_pack or await self.gather_evidence_pack(
+                detection=detection,
+                service=service,
+                incident=incident,
+            )
 
-        prompt = (
-            f"{self._system_prompt}\n\n"
-            "Analyze the following evidence pack and return the RCA JSON.\n\n"
-            f"EVIDENCE_PACK:\n{json.dumps(pack, indent=2, default=str)}"
-        )
+            prompt = (
+                f"{self._system_prompt}\n\n"
+                "Analyze the following evidence pack and return the RCA JSON.\n\n"
+                f"EVIDENCE_PACK:\n{json.dumps(pack, indent=2, default=str)}"
+            )
 
-        raw = await self.llm_service.generate_json(prompt)
-        # If heuristic returned a detection-shaped payload, replace with pack synthesizer
-        if "root_cause" not in raw and "incident_created" in raw:
-            return self.synthesize_from_evidence(pack)
-        return self._normalize(raw, pack)
+            raw = await self.llm_service.generate_json(prompt)
+            # If heuristic returned a detection-shaped payload, replace with pack synthesizer
+            if "root_cause" not in raw and "incident_created" in raw:
+                return self.synthesize_from_evidence(pack)
+            return self._normalize(raw, pack)
 
     async def run(self, context: dict[str, Any]) -> dict[str, Any]:
         """Pipeline step: investigate root cause from context (detection/incident/service)."""

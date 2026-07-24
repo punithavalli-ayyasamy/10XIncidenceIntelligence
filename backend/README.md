@@ -35,6 +35,31 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 CORS is open (`*`) so the Vite UI on `:5173` can call the API.
 
+## Observability (Cloud Logging + Cloud Trace)
+
+On **Cloud Run**, structured JSON logs go to **Cloud Logging** automatically (stdout).
+OpenTelemetry spans export to **Cloud Trace** when `K_SERVICE` is set (`CLOUD_OBSERVABILITY_AUTO=true`).
+
+| Env | Purpose |
+|-----|---------|
+| `ENABLE_CLOUD_LOGGING` | Force JSON structured logs (Cloud Logging format) |
+| `ENABLE_CLOUD_TRACE` | Export OpenTelemetry spans to Cloud Trace |
+| `TRACE_CONSOLE_EXPORT` | Print spans locally for debugging |
+| `SERVICE_NAME` | Appears in Trace / Logging |
+
+Instrumented spans include: HTTP requests, `orchestration.run`, Detection/Investigation agents, metrics load, Gemini/heuristic LLM calls.
+
+**GCP Console demo:** Cloud Run → Logs (agent pipeline lines) · Cloud Trace → Trace list (waterfall after `POST /report`).
+
+Grant the Cloud Run SA `roles/cloudtrace.agent` if traces do not appear:
+
+```bash
+PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)')
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+  --role="roles/cloudtrace.agent"
+```
+
 ## Deploy to GCP from GitHub
 
 Do **not** deploy from local disk. Push to GitHub; Cloud Build pulls the commit and deploys:

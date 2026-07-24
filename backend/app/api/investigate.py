@@ -1,12 +1,17 @@
 """Incident investigation / orchestration API routes."""
 
+import logging
+
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.agents.detection_agent import DetectionResult
+from app.core.observability import span
 from app.models.incident import Incident
 from app.models.report import IncidentIntelligenceReport
 from app.services.orchestrator import OrchestrationService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -49,10 +54,18 @@ async def run_report(request: PipelineRequest | None = None) -> IncidentIntellig
     Each agent receives the previous agent's output via shared pipeline context.
     """
     body = request or PipelineRequest()
-    return await _orchestration.run(
-        service=body.service,
-        incident_id=body.incident_id,
-    )
+    with span("api.report", service=body.service or "payment-service"):
+        logger.info("POST /report service=%s", body.service)
+        report = await _orchestration.run(
+            service=body.service,
+            incident_id=body.incident_id,
+        )
+        logger.info(
+            "POST /report complete report_id=%s status=%s",
+            report.report_id,
+            report.status,
+        )
+        return report
 
 
 @router.post(

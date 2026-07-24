@@ -14,6 +14,7 @@ from app.agents import BaseAgent
 from app.models.incident import Incident, IncidentSeverity, IncidentStatus
 from app.services.llm_service import LLMService, create_llm_service
 from app.tools.metrics_tool import MetricsTool
+from app.core.observability import span
 
 _PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 
@@ -71,34 +72,36 @@ class DetectionAgent(BaseAgent):
 
         Prefer calling this from the API/orchestrator; `run()` wraps it for the pipeline.
         """
-        if metrics_payload is None:
-            metrics_payload = await self.metrics_tool.load_raw(self.metrics_filename)
+        with span("detection.analyze", service=service or "payment-service"):
+            if metrics_payload is None:
+                with span("tools.metrics.load", filename=self.metrics_filename):
+                    metrics_payload = await self.metrics_tool.load_raw(self.metrics_filename)
 
-        affected = (
-            service
-            or str(metrics_payload.get("service") or "payment-service")
-        )
+            affected = (
+                service
+                or str(metrics_payload.get("service") or "payment-service")
+            )
 
-        # Compact but complete context for the model
-        analysis_payload = {
-            "service": metrics_payload.get("service", affected),
-            "scenario": metrics_payload.get("scenario"),
-            "window": metrics_payload.get("window"),
-            "baselines_described": metrics_payload.get("baselines"),
-            "incident_signals_metadata": metrics_payload.get("incident_signals"),
-            "timeline": metrics_payload.get("timeline", []),
-        }
+            # Compact but complete context for the model
+            analysis_payload = {
+                "service": metrics_payload.get("service", affected),
+                "scenario": metrics_payload.get("scenario"),
+                "window": metrics_payload.get("window"),
+                "baselines_described": metrics_payload.get("baselines"),
+                "incident_signals_metadata": metrics_payload.get("incident_signals"),
+                "timeline": metrics_payload.get("timeline", []),
+            }
 
-        user_prompt = (
-            f"{self._system_prompt}\n\n"
-            f"Affected service hint: {affected}\n\n"
-            "Analyze the following metrics document. Reason across the full timeline.\n\n"
-            f"METRICS_JSON:\n{json.dumps(analysis_payload, indent=2)}"
-        )
+            user_prompt = (
+                f"{self._system_prompt}\n\n"
+                f"Affected service hint: {affected}\n\n"
+                "Analyze the following metrics document. Reason across the full timeline.\n\n"
+                f"METRICS_JSON:\n{json.dumps(analysis_payload, indent=2)}"
+            )
 
-        raw = await self.llm_service.generate_json(user_prompt)
-        result = self._normalize(raw, default_service=affected)
-        return result
+            raw = await self.llm_service.generate_json(user_prompt)
+            result = self._normalize(raw, default_service=affected)
+            return result
 
     def _normalize(self, raw: dict[str, Any], default_service: str) -> DetectionResult:
         """Validate / coerce LLM output into DetectionResult."""

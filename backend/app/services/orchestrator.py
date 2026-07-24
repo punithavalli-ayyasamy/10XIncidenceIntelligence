@@ -25,6 +25,7 @@ from app.models.report import (
 )
 from app.services.llm_service import LLMService, create_llm_service
 from app.tools.metrics_tool import MetricsTool
+from app.core.observability import span
 
 logger = logging.getLogger(__name__)
 
@@ -63,33 +64,40 @@ class DetectionStep(PipelineStep):
         return True, None
 
     async def execute(self, ctx: PipelineContext) -> PipelineContext:
-        partial = await self.agent.run(
-            {
-                "service": ctx.service,
-                "metrics": ctx.metrics,
-                "previous_output": ctx.last_agent_output(),
-                "agent_outputs": ctx.agent_outputs,
+        with span("agent.DetectionAgent", service=ctx.service or ""):
+            partial = await self.agent.run(
+                {
+                    "service": ctx.service,
+                    "metrics": ctx.metrics,
+                    "previous_output": ctx.last_agent_output(),
+                    "agent_outputs": ctx.agent_outputs,
+                }
+            )
+            detection = DetectionResult.model_validate(partial.get("detection") or {})
+            incident = partial.get("incident")
+
+            ctx.detection = detection
+            ctx.incident = incident if isinstance(incident, Incident) else None
+            ctx.next_agent = detection.next_agent
+            ctx.agent_outputs[self.name] = {
+                "detection": detection.model_dump(),
+                "incident": ctx.incident.model_dump() if ctx.incident else None,
+                "next_agent": detection.next_agent,
             }
-        )
-        detection = DetectionResult.model_validate(partial.get("detection") or {})
-        incident = partial.get("incident")
+            ctx.agents_run.append(self.name)
 
-        ctx.detection = detection
-        ctx.incident = incident if isinstance(incident, Incident) else None
-        ctx.next_agent = detection.next_agent
-        ctx.agent_outputs[self.name] = {
-            "detection": detection.model_dump(),
-            "incident": ctx.incident.model_dump() if ctx.incident else None,
-            "next_agent": detection.next_agent,
-        }
-        ctx.agents_run.append(self.name)
+            if not detection.incident_created:
+                ctx.stopped = True
+                ctx.stop_reason = "DetectionAgent did not create an incident"
+                ctx.next_agent = None
 
-        if not detection.incident_created:
-            ctx.stopped = True
-            ctx.stop_reason = "DetectionAgent did not create an incident"
-            ctx.next_agent = None
-
-        return ctx
+            logger.info(
+                "DetectionAgent done incident_created=%s severity=%s confidence=%s",
+                detection.incident_created,
+                detection.severity,
+                detection.confidence,
+            )
+            return ctx
 
 
 class InvestigationStep(PipelineStep):
@@ -112,36 +120,46 @@ class InvestigationStep(PipelineStep):
         return True, None
 
     async def execute(self, ctx: PipelineContext) -> PipelineContext:
-        # Pass previous agent output explicitly
-        previous = ctx.previous_output("DetectionAgent") or {
-            "detection": ctx.detection.model_dump() if ctx.detection else None,
-            "incident": ctx.incident.model_dump() if ctx.incident else None,
-        }
-        partial = await self.agent.run(
-            {
-                "service": ctx.service
-                or (ctx.detection.affected_service if ctx.detection else None),
-                "detection": ctx.detection,
-                "incident": ctx.incident,
-                "metrics": ctx.metrics,
-                "previous_output": previous,
-                "agent_outputs": ctx.agent_outputs,
+        with span(
+            "agent.InvestigationAgent",
+            service=ctx.service or "",
+            incident_id=ctx.incident.id if ctx.incident else "",
+        ):
+            # Pass previous agent output explicitly
+            previous = ctx.previous_output("DetectionAgent") or {
+                "detection": ctx.detection.model_dump() if ctx.detection else None,
+                "incident": ctx.incident.model_dump() if ctx.incident else None,
             }
-        )
-        finding = InvestigationFinding.model_validate(partial.get("investigation") or {})
-        incident = partial.get("incident")
-        if isinstance(incident, Incident):
-            ctx.incident = incident
+            partial = await self.agent.run(
+                {
+                    "service": ctx.service
+                    or (ctx.detection.affected_service if ctx.detection else None),
+                    "detection": ctx.detection,
+                    "incident": ctx.incident,
+                    "metrics": ctx.metrics,
+                    "previous_output": previous,
+                    "agent_outputs": ctx.agent_outputs,
+                }
+            )
+            finding = InvestigationFinding.model_validate(partial.get("investigation") or {})
+            incident = partial.get("incident")
+            if isinstance(incident, Incident):
+                ctx.incident = incident
 
-        ctx.investigation = finding
-        ctx.next_agent = str(partial.get("next_agent") or "DependencyAgent")
-        ctx.agent_outputs[self.name] = {
-            "investigation": finding.model_dump(),
-            "incident": ctx.incident.model_dump() if ctx.incident else None,
-            "next_agent": ctx.next_agent,
-        }
-        ctx.agents_run.append(self.name)
-        return ctx
+            ctx.investigation = finding
+            ctx.next_agent = str(partial.get("next_agent") or "DependencyAgent")
+            ctx.agent_outputs[self.name] = {
+                "investigation": finding.model_dump(),
+                "incident": ctx.incident.model_dump() if ctx.incident else None,
+                "next_agent": ctx.next_agent,
+            }
+            ctx.agents_run.append(self.name)
+            logger.info(
+                "InvestigationAgent done confidence=%s root_cause_len=%s",
+                finding.confidence,
+                len(finding.root_cause or ""),
+            )
+            return ctx
 
 
 class FunctionStep(PipelineStep):
@@ -237,53 +255,74 @@ class OrchestrationService:
         Loads payment_metrics.json when metrics are not provided.
         """
         _ = kwargs
-        if metrics is None:
-            metrics = await self.metrics_tool.load_raw("payment_metrics.json")
+        with span(
+            "orchestration.run",
+            service=service or "payment-service",
+            incident_id=incident_id or "",
+        ):
+            if metrics is None:
+                with span("tools.metrics.load", filename="payment_metrics.json"):
+                    metrics = await self.metrics_tool.load_raw("payment_metrics.json")
 
-        ctx = PipelineContext(
-            service=service or str(metrics.get("service") or "payment-service"),
-            metrics=metrics,
-            incident_id=incident_id,
-            extras=dict(kwargs) if kwargs else {},
-        )
+            ctx = PipelineContext(
+                service=service or str(metrics.get("service") or "payment-service"),
+                metrics=metrics,
+                incident_id=incident_id,
+                extras=dict(kwargs) if kwargs else {},
+            )
 
-        logger.info("Orchestration starting pipeline=%s service=%s", self.pipeline_names, ctx.service)
+            logger.info(
+                "Orchestration starting pipeline=%s service=%s",
+                self.pipeline_names,
+                ctx.service,
+            )
 
-        for step in self.steps:
-            if ctx.stopped:
+            for step in self.steps:
+                if ctx.stopped:
+                    ctx.step_traces.append(
+                        AgentStepTrace(
+                            agent=step.name,
+                            status="stopped_pipeline",
+                            reason=ctx.stop_reason,
+                        )
+                    )
+                    continue
+
+                should, reason = await step.should_run(ctx)
+                if not should:
+                    ctx.step_traces.append(
+                        AgentStepTrace(agent=step.name, status="skipped", reason=reason)
+                    )
+                    logger.info("Skipping %s (%s)", step.name, reason)
+                    continue
+
+                logger.info(
+                    "Running %s (previous=%s)",
+                    step.name,
+                    ctx.agents_run[-1] if ctx.agents_run else None,
+                )
+                with span(f"pipeline.step.{step.name}", agent=step.name):
+                    ctx = await step.execute(ctx)
+                output = ctx.agent_outputs.get(step.name) or {}
                 ctx.step_traces.append(
                     AgentStepTrace(
                         agent=step.name,
-                        status="stopped_pipeline",
-                        reason=ctx.stop_reason,
+                        status="ran",
+                        output_keys=list(output.keys()) if isinstance(output, dict) else [],
                     )
                 )
-                continue
 
-            should, reason = await step.should_run(ctx)
-            if not should:
-                ctx.step_traces.append(
-                    AgentStepTrace(agent=step.name, status="skipped", reason=reason)
-                )
-                logger.info("Skipping %s (%s)", step.name, reason)
-                continue
-
-            logger.info("Running %s (previous=%s)", step.name, ctx.agents_run[-1] if ctx.agents_run else None)
-            ctx = await step.execute(ctx)
-            output = ctx.agent_outputs.get(step.name) or {}
-            ctx.step_traces.append(
-                AgentStepTrace(
-                    agent=step.name,
-                    status="ran",
-                    output_keys=list(output.keys()) if isinstance(output, dict) else [],
-                )
+            report = self._build_report(ctx)
+            self._reports[report.report_id] = report
+            if report.incident is not None:
+                self._incidents[report.incident.id] = report.incident
+            logger.info(
+                "Orchestration complete report_id=%s status=%s agents_run=%s",
+                report.report_id,
+                report.status,
+                report.agents_run,
             )
-
-        report = self._build_report(ctx)
-        self._reports[report.report_id] = report
-        if report.incident is not None:
-            self._incidents[report.incident.id] = report.incident
-        return report
+            return report
 
     def _build_report(self, ctx: PipelineContext) -> IncidentIntelligenceReport:
         report_id = f"rpt-{uuid.uuid4().hex[:10]}"
